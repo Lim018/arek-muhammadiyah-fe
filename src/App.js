@@ -1,5 +1,6 @@
 // src/App.js
 import React from 'react';
+import './App.css';
 import Dashboard from './components/Dashboard';
 import 'leaflet/dist/leaflet.css';
 

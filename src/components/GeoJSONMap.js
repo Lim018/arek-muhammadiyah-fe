@@ -1,65 +1,60 @@
 import React, { useRef } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
-import { getProvinceData, getColorByMemberCount } from '../data/mockData';
+import { getKabupatenData, getColorByMemberCount } from '../data/mockData';
 
-const GeoJSONMap = ({ geoJsonData, onProvinceClick, onProvinceHover }) => {
+const GeoJSONMap = ({ geoJsonData, onKabupatenClick, onKabupatenHover }) => {
   const mapRef = useRef();
 
   const style = (feature) => {
-    const provinceName = feature.properties.PROVINSI || feature.properties.NAME_1;
-    const data = getProvinceData(provinceName);
+    // Mengambil nama kabupaten dari properti GeoJSON
+    const kabupatenName = feature.properties.WADMKK;
+    const data = getKabupatenData(kabupatenName);
     
     return {
       fillColor: getColorByMemberCount(data.members),
-      weight: 2,
+      weight: 1, // Garis batas lebih tipis untuk tampilan kabupaten
       opacity: 1,
       color: 'white',
-      dashArray: '3',
       fillOpacity: 0.7
     };
   };
 
   const onEachFeature = (feature, layer) => {
-    const provinceName = feature.properties.PROVINSI || feature.properties.NAME_1;
-    const data = getProvinceData(provinceName);
+    const kabupatenName = feature.properties.WADMKK;
+    const data = getKabupatenData(kabupatenName);
 
-    // Tooltip untuk menampilkan nama provinsi
-    layer.bindTooltip(provinceName, {
+    // PERBAIKAN DI SINI: Menggunakan 'kabupatenName' untuk tooltip
+    layer.bindTooltip(kabupatenName, {
       permanent: false,
       direction: 'center',
-      className: 'province-tooltip'
+      className: 'province-tooltip' // Nama kelas CSS bisa tetap sama
     });
 
     layer.on({
       mouseover: (e) => {
         const layer = e.target;
-        
-        // Highlight style saat hover
         layer.setStyle({
-          weight: 5,
+          weight: 3,
           color: '#666',
           dashArray: '',
           fillOpacity: 0.9
         });
-        
         layer.bringToFront();
         
-        if (onProvinceHover) {
-          onProvinceHover(provinceName, data, e);
+        if (onKabupatenHover) {
+          onKabupatenHover(kabupatenName, data, e);
         }
       },
       mouseout: (e) => {
         const layer = e.target;
-        // Kembalikan style original
         layer.setStyle(style(feature));
       },
       click: (e) => {
         const map = e.target._map;
-        // Zoom ke provinsi yang diklik
         map.fitBounds(e.target.getBounds());
         
-        if (onProvinceClick) {
-          onProvinceClick(provinceName, data);
+        if (onKabupatenClick) {
+          onKabupatenClick(kabupatenName, data);
         }
       }
     });
@@ -83,7 +78,6 @@ const GeoJSONMap = ({ geoJsonData, onProvinceClick, onProvinceHover }) => {
           data={geoJsonData}
           style={style}
           onEachFeature={onEachFeature}
-          key={JSON.stringify(geoJsonData)} // Force re-render when data changes
         />
       )}
     </MapContainer>

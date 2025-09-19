@@ -1,38 +1,114 @@
-.App {
-  text-align: center;
+/* Anda bisa meletakkan kode ini di dalam src/App.css */
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background-color: #f0f2f5;
+  margin: 0;
+  padding: 0;
+  color: #333;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
+.dashboard {
+  padding: 20px;
 }
 
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
+.main-content {
+  display: flex;
+  gap: 20px;
 }
 
-.App-header {
-  background-color: #282c34;
-  min-height: 100vh;
+.map-wrapper {
+  flex: 3; /* Membuat peta mengambil 3/4 ruang */
+  position: relative;
+}
+
+.map-container {
+  width: 100%;
+  height: 85vh; /* Tinggi peta 85% dari tinggi viewport */
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  overflow: hidden; /* Penting agar peta tidak keluar dari border-radius */
+}
+
+.sidebar {
+  flex: 1; /* Membuat sidebar mengambil 1/4 ruang */
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  gap: 20px;
 }
 
-.App-link {
-  color: #61dafb;
+.province-card, .legend-card {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.province-card h3, .legend-card h3 {
+  margin-top: 0;
+  color: #1e3a8a; /* Biru tua */
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 10px;
+}
+
+.province-card.placeholder {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    text-align: center;
+    color: #666;
+    height: 150px; /* Atur tinggi agar terlihat seimbang */
+}
+
+.province-stats {
+  display: flex;
+  justify-content: space-between;
+  text-align: center;
+  gap: 15px;
+}
+
+.province-stat {
+  display: flex;
+  flex-direction: column;
+}
+
+.province-stat span {
+  font-size: 0.9em;
+  color: #64748b;
+}
+
+.province-stat strong {
+  font-size: 1.5em;
+  font-weight: 600;
+  color: #1e3a8a;
+}
+
+/* Style untuk InfoWindow saat hover */
+.info-window {
+  background: white;
+  padding: 10px 15px;
+  border-radius: 6px;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+  pointer-events: none; /* Agar tidak mengganggu interaksi peta */
+}
+
+.info-content h4 {
+  margin: 0 0 5px 0;
+  font-size: 1em;
+}
+
+.info-stats .stat-item {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.9em;
+}
+
+.stat-label {
+  margin-right: 10px;
+  color: #555;
+}
+
+.stat-value {
+  font-weight: bold;
 }
