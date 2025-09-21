@@ -61,7 +61,7 @@ const GeoJSONMap = ({ geoJsonData, onKabupatenClick, onKabupatenHover }) => {
   };
 
   return (
-    <MapContainer
+    <MapContainer 
       center={[-2.5489, 118.0149]}
       zoom={5}
       className="map-container"
