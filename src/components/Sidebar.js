@@ -1,108 +1,108 @@
 import React, { useState } from 'react';
+import { Home, Users, Smartphone, UserCheck, Building, Ticket, Tags, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import './Sidebar.css';
 
-const Sidebar = () => {
-  const [activeItem, setActiveItem] = useState('Dashboard');
-  const [ticketSubmenuOpen, setTicketSubmenuOpen] = useState(false);
+const Sidebar = ({ isOpen, onClose }) => {
+  const [expandedMenus, setExpandedMenus] = useState({});
+
+  const toggleMenu = (menuKey) => {
+    setExpandedMenus(prev => ({
+      ...prev,
+      [menuKey]: !prev[menuKey]
+    }));
+  };
 
   const menuItems = [
-    {
-      name: 'Dashboard',
-      icon: '📊',
-      path: '/dashboard'
+    { 
+      key: 'dashboard', 
+      label: 'Dashboard', 
+      icon: Home, 
+      active: true 
     },
     {
-      name: 'Pengguna',
-      icon: '👥',
-      path: '/pengguna',
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Kategori', icon: '📱', path: '/pengguna/mobile-app' },
-        { name: 'Tiket', icon: '👤', path: '/pengguna/anggota-mu' }
+      key: 'pengguna',
+      label: 'Pengguna',
+      icon: Users,
+      expandable: true,
+      subItems: [
+        { key: 'mobile-app', label: 'Mobile App', icon: Smartphone },
+        { key: 'anggota-mu', label: 'Anggota MU', icon: UserCheck }
       ]
     },
-    // {
-    //   name: 'Pengguna',
-    //   icon: '👥',
-    //   path: '/pengguna',
-    //   hasSubmenu: true,
-    //   submenu: []
-    // },
-    // {
-    //   name: 'Mobile App',
-    //   icon: '📱',
-    //   path: '/mobile-app'
-    // },
-    // {
-    //   name: 'Anggota MU',
-    //   icon: '👤',
-    //   path: '/anggota-mu'
-    // },
-    {
-      name: 'Bidang',
-      icon: '🏢',
-      path: '/bidang'
+    { 
+      key: 'bidang', 
+      label: 'Bidang', 
+      icon: Building 
     },
     {
-      name: 'Tiket',
-      icon: '🎫',
-      path: '/tiket',
-      hasSubmenu: true,
-      submenu: [
-        { name: 'Kategori', icon: '📝', path: '/tiket/kategori' },
-        { name: 'Tiket', icon: '🎫', path: '/tiket/list' }
+      key: 'tiket',
+      label: 'Tiket',
+      icon: Ticket,
+      expandable: true,
+      subItems: [
+        { key: 'kategori', label: 'Kategori', icon: Tags },
+        { key: 'tiket-list', label: 'Tiket', icon: Ticket }
       ]
     },
-    {
-      name: 'Artikel',
-      icon: '📄',
-      path: '/artikel'
+    { 
+      key: 'artikel', 
+      label: 'Artikel', 
+      icon: FileText 
     }
   ];
 
-  const handleItemClick = (item) => {
-    setActiveItem(item.name);
-    if (item.name === 'Tiket') {
-      setTicketSubmenuOpen(!ticketSubmenuOpen);
-    }
-  };
-
   return (
-    <div className="sidebar">
-      <div className="sidebar-menu">
-        {menuItems.map((item, index) => (
-          <div key={index} className="menu-item-wrapper">
-            <div 
-              className={`menu-item ${activeItem === item.name ? 'active' : ''}`}
-              onClick={() => handleItemClick(item)}
-            >
-              <span className="menu-icon">{item.icon}</span>
-              <span className="menu-text">{item.name}</span>
-              {item.hasSubmenu && (
-                <span className={`submenu-arrow ${item.name === 'Tiket' && ticketSubmenuOpen ? 'open' : ''}`}>
-                  ▼
-                </span>
-              )}
-            </div>
-            
-            {item.name === 'Tiket' && ticketSubmenuOpen && (
-              <div className="submenu">
-                {item.submenu.map((subItem, subIndex) => (
-                  <div 
-                    key={subIndex}
-                    className={`submenu-item ${activeItem === subItem.name ? 'active' : ''}`}
-                    onClick={() => setActiveItem(subItem.name)}
-                  >
-                    <span className="submenu-icon">{subItem.icon}</span>
-                    <span className="submenu-text">{subItem.name}</span>
+    <>
+      <div className={`sidebar ${isOpen ? 'sidebar-open' : ''}`}>
+        <div className="sidebar-content">
+          <div className="sidebar-nav">
+            {menuItems.map((item) => (
+              <div key={item.key} className="menu-group">
+                <div
+                  className={`menu-item ${item.active ? 'active' : ''}`}
+                  onClick={() => item.expandable && toggleMenu(item.key)}
+                >
+                  <div className="menu-item-content">
+                    <item.icon size={18} className="menu-icon" />
+                    <span className="menu-label">{item.label}</span>
                   </div>
-                ))}
+                  {item.expandable && (
+                    <div className="expand-icon">
+                      {expandedMenus[item.key] ? 
+                        <ChevronDown size={16} /> : 
+                        <ChevronRight size={16} />
+                      }
+                    </div>
+                  )}
+                </div>
+                
+                {item.expandable && expandedMenus[item.key] && (
+                  <div className="submenu">
+                    {item.subItems.map((subItem) => (
+                      <div
+                        key={subItem.key}
+                        className="submenu-item"
+                      >
+                        <subItem.icon size={16} className="submenu-icon" />
+                        <span className="submenu-label">{subItem.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            ))}
           </div>
-        ))}
+        </div>
       </div>
-    </div>
+
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <div 
+          className="sidebar-overlay"
+          onClick={onClose}
+        />
+      )}
+    </>
   );
 };
 
