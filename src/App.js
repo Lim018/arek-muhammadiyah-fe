@@ -1,7 +1,7 @@
 // src/App.js
 import React from 'react';
 import './App.css';
-import Dashboard from './components/Dashboard';
+import DashboardPage from './pages/DashboardPage';
 import 'leaflet/dist/leaflet.css';
 
 // Fix untuk marker icons Leaflet
@@ -21,7 +21,7 @@ L.Marker.prototype.options.icon = DefaultIcon;
 function App() {
   return (
     <div className="App">
-      <Dashboard />
+      <DashboardPage />
     </div>
   );
 }
