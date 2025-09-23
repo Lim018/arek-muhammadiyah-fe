@@ -1,9 +1,11 @@
 import React, { useState } from 'react';
+import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, Smartphone, UserCheck, Building, Ticket, Tags, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import './Sidebar.css';
 
 const Sidebar = ({ isOpen, onClose }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
+  const location = useLocation();
 
   const toggleMenu = (menuKey) => {
     setExpandedMenus(prev => ({
@@ -12,12 +14,20 @@ const Sidebar = ({ isOpen, onClose }) => {
     }));
   };
 
+  const isActive = (path) => {
+    return location.pathname === path;
+  };
+
+  const isParentActive = (paths) => {
+    return paths.some(path => location.pathname === path);
+  };
+
   const menuItems = [
     { 
       key: 'dashboard', 
       label: 'Dashboard', 
       icon: Home, 
-      active: true 
+      path: '/dashboard'
     },
     {
       key: 'pengguna',
@@ -25,14 +35,15 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Users,
       expandable: true,
       subItems: [
-        { key: 'mobile-app', label: 'Mobile App', icon: Smartphone },
-        { key: 'anggota-mu', label: 'Anggota MU', icon: UserCheck }
+        { key: 'mobile-app', label: 'Mobile App', icon: Smartphone, path: '/pengguna/mobile-app' },
+        { key: 'anggota-mu', label: 'Anggota MU', icon: UserCheck, path: '/pengguna/anggota-mu' }
       ]
     },
     { 
       key: 'bidang', 
       label: 'Bidang', 
-      icon: Building 
+      icon: Building,
+      path: '/bidang'
     },
     {
       key: 'tiket',
@@ -40,14 +51,15 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Ticket,
       expandable: true,
       subItems: [
-        { key: 'kategori', label: 'Kategori', icon: Tags },
-        { key: 'tiket-list', label: 'Tiket', icon: Ticket }
+        { key: 'kategori', label: 'Kategori', icon: Tags, path: '/tiket/kategori' },
+        { key: 'tiket-list', label: 'Tiket', icon: Ticket, path: '/tiket/list' }
       ]
     },
     { 
       key: 'artikel', 
       label: 'Artikel', 
-      icon: FileText 
+      icon: FileText,
+      path: '/artikel'
     }
   ];
 
@@ -58,34 +70,47 @@ const Sidebar = ({ isOpen, onClose }) => {
           <div className="sidebar-nav">
             {menuItems.map((item) => (
               <div key={item.key} className="menu-group">
-                <div
-                  className={`menu-item ${item.active ? 'active' : ''}`}
-                  onClick={() => item.expandable && toggleMenu(item.key)}
-                >
-                  <div className="menu-item-content">
-                    <item.icon size={18} className="menu-icon" />
-                    <span className="menu-label">{item.label}</span>
-                  </div>
-                  {item.expandable && (
+                {item.expandable ? (
+                  <div
+                    className={`menu-item ${isParentActive(item.subItems.map(sub => sub.path)) ? 'active' : ''}`}
+                    onClick={() => toggleMenu(item.key)}
+                  >
+                    <div className="menu-item-content">
+                      <item.icon size={18} className="menu-icon" />
+                      <span className="menu-label">{item.label}</span>
+                    </div>
                     <div className="expand-icon">
                       {expandedMenus[item.key] ? 
                         <ChevronDown size={16} /> : 
                         <ChevronRight size={16} />
                       }
                     </div>
-                  )}
-                </div>
+                  </div>
+                ) : (
+                  <Link 
+                    to={item.path} 
+                    className={`menu-item ${isActive(item.path) ? 'active' : ''}`}
+                    onClick={onClose}
+                  >
+                    <div className="menu-item-content">
+                      <item.icon size={18} className="menu-icon" />
+                      <span className="menu-label">{item.label}</span>
+                    </div>
+                  </Link>
+                )}
                 
                 {item.expandable && expandedMenus[item.key] && (
                   <div className="submenu">
                     {item.subItems.map((subItem) => (
-                      <div
+                      <Link
                         key={subItem.key}
-                        className="submenu-item"
+                        to={subItem.path}
+                        className={`submenu-item ${isActive(subItem.path) ? 'active' : ''}`}
+                        onClick={onClose}
                       >
                         <subItem.icon size={16} className="submenu-icon" />
                         <span className="submenu-label">{subItem.label}</span>
-                      </div>
+                      </Link>
                     ))}
                   </div>
                 )}

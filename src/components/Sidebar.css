@@ -2,7 +2,7 @@
   position: fixed;
   top: 60px;
   left: 0;
-  width: 256px;
+  width: 256px; /* Sesuai dengan Layout.css */
   height: calc(100vh - 60px);
   background: white;
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
@@ -52,15 +52,18 @@
   cursor: pointer;
   transition: all 0.2s ease;
   color: #4b5563; /* gray-600 */
+  text-decoration: none; /* Remove default link underline */
 }
 
 .menu-item:hover {
   background-color: #f9fafb; /* gray-50 */
+  color: #1f2937;
 }
 
 .menu-item.active {
   background-color: #dbeafe; /* blue-50 */
   color: #2563eb; /* blue-600 */
+  font-weight: 500;
 }
 
 .menu-item-content {
@@ -96,11 +99,19 @@
   border-radius: 8px;
   color: #4b5563; /* gray-600 */
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: all 0.2s ease;
+  text-decoration: none; /* Remove default link underline */
 }
 
 .submenu-item:hover {
   background-color: #f9fafb; /* gray-50 */
+  color: #1f2937;
+}
+
+.submenu-item.active {
+  background-color: #dbeafe; /* blue-50 */
+  color: #2563eb; /* blue-600 */
+  font-weight: 500;
 }
 
 .submenu-icon {
@@ -143,4 +154,16 @@
 
 .sidebar::-webkit-scrollbar-thumb:hover {
   background: #9ca3af;
+}
+
+/* Additional styles for parent menu active state */
+.menu-item.active .expand-icon {
+  color: #2563eb; /* blue-600 */
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 1023px) {
+  .sidebar {
+    width: 256px; /* Full width on mobile */
+  }
 }
