@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Impor useEffect
 import { Link, useLocation } from 'react-router-dom';
 import { Home, Users, Smartphone, UserCheck, Building, Ticket, Tags, FileText, ChevronDown, ChevronRight } from 'lucide-react';
 import './Sidebar.css';
@@ -6,6 +6,25 @@ import './Sidebar.css';
 const Sidebar = ({ isOpen, onClose }) => {
   const [expandedMenus, setExpandedMenus] = useState({});
   const location = useLocation();
+
+  // TAMBAHKAN BLOK KODE INI
+  // Efek ini akan berjalan setiap kali URL (lokasi) berubah.
+  useEffect(() => {
+    // Cari menu induk yang salah satu submenu-nya aktif berdasarkan URL saat ini.
+    const activeParent = menuItems.find(item =>
+      item.expandable && item.subItems.some(sub => sub.path === location.pathname)
+    );
+
+    // Jika menu induk yang aktif ditemukan, pastikan menu tersebut terbuka.
+    if (activeParent) {
+      // Gunakan callback di setExpandedMenus untuk memastikan kita tidak menimpa state lain
+      // yang mungkin sudah diatur oleh interaksi pengguna (misalnya, membuka menu lain secara manual).
+      setExpandedMenus(prev => ({
+        ...prev,
+        [activeParent.key]: true
+      }));
+    }
+  }, [location]); // Dependensi: useEffect akan berjalan lagi jika 'location' berubah.
 
   const toggleMenu = (menuKey) => {
     setExpandedMenus(prev => ({
