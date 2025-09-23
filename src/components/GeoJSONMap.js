@@ -1,9 +1,18 @@
-import React, { useRef } from 'react';
+import React, { useRef, useEffect } from 'react';
 import { MapContainer, TileLayer, GeoJSON } from 'react-leaflet';
 import { getKabupatenData, getColorByMemberCount } from '../data/mockData';
 
 const GeoJSONMap = ({ geoJsonData, onKabupatenClick, onKabupatenHover }) => {
   const mapRef = useRef();
+
+  // Force map to resize when container changes
+  useEffect(() => {
+    if (mapRef.current) {
+      setTimeout(() => {
+        mapRef.current.invalidateSize();
+      }, 100);
+    }
+  }, [geoJsonData]);
 
   const style = (feature) => {
     // Mengambil nama kabupaten dari properti GeoJSON
@@ -23,11 +32,11 @@ const GeoJSONMap = ({ geoJsonData, onKabupatenClick, onKabupatenHover }) => {
     const kabupatenName = feature.properties.WADMKK;
     const data = getKabupatenData(kabupatenName);
 
-    // PERBAIKAN DI SINI: Menggunakan 'kabupatenName' untuk tooltip
+    // Menggunakan 'kabupatenName' untuk tooltip
     layer.bindTooltip(kabupatenName, {
       permanent: false,
       direction: 'center',
-      className: 'province-tooltip' // Nama kelas CSS bisa tetap sama
+      className: 'province-tooltip'
     });
 
     layer.on({
@@ -60,14 +69,25 @@ const GeoJSONMap = ({ geoJsonData, onKabupatenClick, onKabupatenHover }) => {
     });
   };
 
+  if (!geoJsonData) {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f3f4f6' }}>
+        <div>Loading map...</div>
+      </div>
+    );
+  }
+
   return (
     <MapContainer 
       center={[-2.5489, 118.0149]}
       zoom={5}
-      className="map-container"
+      style={{ height: '100%', width: '100%' }}
       ref={mapRef}
       scrollWheelZoom={true}
       zoomControl={true}
+      whenCreated={(mapInstance) => {
+        mapRef.current = mapInstance;
+      }}
     >
       <TileLayer
         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

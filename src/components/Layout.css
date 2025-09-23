@@ -18,7 +18,8 @@
 /* Desktop: add margin for sidebar */
 @media (min-width: 1024px) {
   .main-content {
-    margin-left: 256px; /* Width of sidebar */
+    margin-left: 128px; /* <-- UBAH DARI 256px */
+    padding-left: 0; /* Remove extra padding */
   }
 }
 
