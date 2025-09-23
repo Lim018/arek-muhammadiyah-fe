@@ -50,40 +50,74 @@
   margin-bottom: 24px;
 }
 
+/* UPDATED: Modern Stat Cards */
 .stat-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
-  padding: 20px;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
+  padding: 24px;
   display: flex;
   align-items: center;
   gap: 16px;
-  border-left: 4px solid;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(135deg, var(--accent-color), var(--accent-color-light));
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08);
+  border-color: #e2e8f0;
 }
 
-.stat-card.blue { border-left-color: #3b82f6; }
-.stat-card.green { border-left-color: #10b981; }
-.stat-card.red { border-left-color: #ef4444; }
-.stat-card.yellow { border-left-color: #f59e0b; }
-.stat-card.purple { border-left-color: #8b5cf6; }
-.stat-card.gray { border-left-color: #6b7280; }
+.stat-card.blue {
+  --accent-color: #3b82f6;
+  --accent-color-light: #60a5fa;
+}
+.stat-card.green {
+  --accent-color: #10b981;
+  --accent-color-light: #34d399;
+}
+.stat-card.red {
+  --accent-color: #ef4444;
+  --accent-color-light: #f87171;
+}
+.stat-card.yellow {
+  --accent-color: #f59e0b;
+  --accent-color-light: #fbbf24;
+}
+.stat-card.purple {
+    --accent-color: #8b5cf6;
+    --accent-color-light: #a78bfa;
+}
+.stat-card.gray {
+  --accent-color: #6b7280;
+  --accent-color-light: #9ca3af;
+}
 
 .stat-icon {
-  font-size: 24px;
+  font-size: 20px;
   width: 48px;
   height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #f9fafb;
+  background: white; /* Changed to white */
+  color: var(--accent-color); /* Icon color uses accent color */
   border-radius: 12px;
   flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06); /* Lighter shadow */
 }
 
 .stat-content {
@@ -104,14 +138,23 @@
   line-height: 1.2;
 }
 
-/* Content Cards */
+/* UPDATED: Content Cards */
 .content-card {
   background: white;
-  border-radius: 12px;
-  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  border: 1px solid #f1f5f9;
   overflow: hidden;
   margin-bottom: 24px;
+  transition: all 0.3s ease;
 }
+
+.content-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+  border-color: #e2e8f0;
+}
+
 
 .card-header {
   padding: 20px;
@@ -461,17 +504,19 @@
   padding: 20px;
 }
 
+/* UPDATED: Bidang Card */
 .bidang-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 20px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .bidang-card:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
   transform: translateY(-2px);
 }
 
@@ -530,17 +575,19 @@
   padding: 20px;
 }
 
+/* UPDATED: Article Card */
 .article-card {
   background: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
+  border: 1px solid #f1f5f9;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   padding: 20px;
-  transition: all 0.2s ease;
+  transition: all 0.3s ease;
 }
 
 .article-card:hover {
-  border-color: #3b82f6;
-  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  border-color: #e2e8f0;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
   transform: translateY(-2px);
 }
 
