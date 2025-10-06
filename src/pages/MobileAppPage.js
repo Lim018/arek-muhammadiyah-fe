@@ -1,33 +1,91 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { Search, Filter, MoreVertical, Smartphone, Download, Eye } from 'lucide-react';
+import { Search, Smartphone, Eye, MapPin, Phone, CreditCard } from 'lucide-react';
 import '../styles/CommonPages.css';
 
 const MobileAppPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedFilter, setSelectedFilter] = useState('semua');
+  const [selectedVillage, setSelectedVillage] = useState('semua');
+  const [villages, setVillages] = useState([]);
 
   useEffect(() => {
-    // Simulasi loading data
-    setTimeout(() => {
-      setUsers([
-        { id: 1, name: 'Ahmad Ridwan', phone: '081234567890', location: 'Jakarta', registeredDate: '2024-01-15', status: 'active', lastActive: '2 jam lalu' },
-        { id: 2, name: 'Siti Aisyah', phone: '081234567891', location: 'Bandung', registeredDate: '2024-01-20', status: 'active', lastActive: '1 hari lalu' },
-        { id: 3, name: 'Muhammad Fauzi', phone: '081234567892', location: 'Surabaya', registeredDate: '2024-02-01', status: 'inactive', lastActive: '1 minggu lalu' },
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchVillages();
+    fetchMobileUsers();
   }, []);
+
+  const fetchVillages = async () => {
+    try {
+      // TODO: Ganti dengan API asli
+      setVillages([
+        { id: 1, name: 'Gubeng' },
+        { id: 2, name: 'Airlangga' },
+        { id: 3, name: 'Wonokromo' },
+        { id: 4, name: 'Sawahan' },
+        { id: 5, name: 'Genteng' },
+      ]);
+    } catch (error) {
+      console.error('Error fetching villages:', error);
+    }
+  };
+
+  const fetchMobileUsers = async () => {
+    try {
+      // TODO: Ganti dengan API call asli (filter is_mobile = true)
+      setTimeout(() => {
+        setUsers([
+          { 
+            id: '081234567894',
+            name: 'Joko Widodo',
+            telp: '081234567894',
+            village_id: 1,
+            village: { name: 'Gubeng' },
+            nik: '3578015234567894',
+            address: 'Jl. Gubeng Kertajaya No. 10, Surabaya',
+            is_mobile: true,
+            created_at: '2024-01-15'
+          },
+          { 
+            id: '081234567895',
+            name: 'Sri Mulyani',
+            telp: '081234567895',
+            village_id: 2,
+            village: { name: 'Airlangga' },
+            nik: '3578016234567895',
+            address: 'Jl. Airlangga Dalam No. 5, Surabaya',
+            is_mobile: true,
+            created_at: '2024-01-20'
+          },
+          { 
+            id: '081234567896',
+            name: 'Bambang Sutopo',
+            telp: '081234567896',
+            village_id: 3,
+            village: { name: 'Wonokromo' },
+            nik: '3578017234567896',
+            address: 'Jl. Wonokromo Indah No. 12, Surabaya',
+            is_mobile: true,
+            created_at: '2024-02-01'
+          },
+        ]);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error fetching users:', error);
+      setLoading(false);
+    }
+  };
 
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.phone.includes(searchTerm) ||
-                         user.location.toLowerCase().includes(searchTerm.toLowerCase());
+                         user.telp?.includes(searchTerm) ||
+                         user.nik?.includes(searchTerm) ||
+                         user.village?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    if (selectedFilter === 'semua') return matchesSearch;
-    return matchesSearch && user.status === selectedFilter;
+    const matchesVillage = selectedVillage === 'semua' || user.village_id === parseInt(selectedVillage);
+    
+    return matchesSearch && matchesVillage;
   });
 
   return (
@@ -39,31 +97,31 @@ const MobileAppPage = () => {
               <Smartphone className="page-icon" />
               Pengguna Mobile App
             </h1>
-            <p className="page-subtitle">Kelola pengguna aplikasi mobile</p>
+            <p className="page-subtitle">Anggota yang menggunakan aplikasi mobile</p>
           </div>
         </div>
 
         {/* Stats Cards */}
         <div className="stats-grid">
           <div className="stat-card blue">
-            <div className="stat-icon">👥</div>
+            <div className="stat-icon">📱</div>
             <div className="stat-content">
               <div className="stat-number">{users.length}</div>
-              <div className="stat-description">Total Pengguna</div>
+              <div className="stat-description">Total Pengguna Mobile</div>
             </div>
           </div>
           <div className="stat-card green">
             <div className="stat-icon">✅</div>
             <div className="stat-content">
-              <div className="stat-number">{users.filter(u => u.status === 'active').length}</div>
-              <div className="stat-description">Pengguna Aktif</div>
+              <div className="stat-number">{users.filter(u => u.is_mobile).length}</div>
+              <div className="stat-description">Akun Aktif</div>
             </div>
           </div>
-          <div className="stat-card red">
-            <div className="stat-icon">⭕</div>
+          <div className="stat-card purple">
+            <div className="stat-icon">🏘️</div>
             <div className="stat-content">
-              <div className="stat-number">{users.filter(u => u.status === 'inactive').length}</div>
-              <div className="stat-description">Pengguna Tidak Aktif</div>
+              <div className="stat-number">{villages.length}</div>
+              <div className="stat-description">Kelurahan</div>
             </div>
           </div>
         </div>
@@ -76,7 +134,7 @@ const MobileAppPage = () => {
                 <Search size={20} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Cari berdasarkan nama, telepon, atau lokasi..."
+                  placeholder="Cari berdasarkan nama, NIK, telepon, atau kelurahan..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input"
@@ -84,60 +142,87 @@ const MobileAppPage = () => {
               </div>
               <div className="filter-section">
                 <select
-                  value={selectedFilter}
-                  onChange={(e) => setSelectedFilter(e.target.value)}
+                  value={selectedVillage}
+                  onChange={(e) => setSelectedVillage(e.target.value)}
                   className="filter-select"
                 >
-                  <option value="semua">Semua Status</option>
-                  <option value="active">Aktif</option>
-                  <option value="inactive">Tidak Aktif</option>
+                  <option value="semua">Semua Kelurahan</option>
+                  {villages.map(village => (
+                    <option key={village.id} value={village.id}>{village.name}</option>
+                  ))}
                 </select>
               </div>
             </div>
           </div>
 
+          {/* Table Data */}
           <div className="table-container">
             <table className="data-table">
               <thead>
                 <tr>
                   <th>Nama</th>
                   <th>No. Telepon</th>
-                  <th>Lokasi</th>
-                  <th>Tanggal Daftar</th>
-                  <th>Status</th>
-                  <th>Terakhir Aktif</th>
+                  <th>Kelurahan</th>
+                  <th>NIK</th>
+                  <th>Alamat</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="loading-cell">Memuat data...</td>
+                    <td colSpan="6" className="loading-cell">Memuat data...</td>
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="empty-cell">Tidak ada data yang ditemukan</td>
+                    <td colSpan="6" className="empty-cell">Tidak ada data yang ditemukan</td>
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
                     <tr key={user.id}>
-                      <td className="user-name">{user.name}</td>
-                      <td>{user.phone}</td>
-                      <td>{user.location}</td>
-                      <td>{new Date(user.registeredDate).toLocaleDateString('id-ID')}</td>
-                      <td>
-                        <span className={`status-badge ${user.status}`}>
-                          {user.status === 'active' ? 'Aktif' : 'Tidak Aktif'}
-                        </span>
+                      <td className="user-name">
+                        <strong>{user.name}</strong>
                       </td>
-                      <td>{user.lastActive}</td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <Phone size={14} style={{ color: '#6b7280' }} />
+                          {user.telp || '-'}
+                        </div>
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <MapPin size={14} style={{ color: '#6b7280' }} />
+                          {user.village?.name || '-'}
+                        </div>
+                      </td>
+                      <td>
+                        <code style={{ 
+                          fontSize: '0.85em', 
+                          background: '#f3f4f6', 
+                          padding: '2px 6px', 
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          width: 'fit-content'
+                        }}>
+                          <CreditCard size={12} />
+                          {user.nik || '-'}
+                        </code>
+                      </td>
+                      <td style={{ maxWidth: '300px' }}>
+                        <div style={{ 
+                          overflow: 'hidden', 
+                          textOverflow: 'ellipsis', 
+                          whiteSpace: 'nowrap' 
+                        }} title={user.address}>
+                          {user.address || '-'}
+                        </div>
+                      </td>
                       <td>
                         <div className="action-buttons">
-                          <button className="action-btn view">
+                          <button className="action-btn view" title="Lihat Detail">
                             <Eye size={16} />
-                          </button>
-                          <button className="action-btn menu">
-                            <MoreVertical size={16} />
                           </button>
                         </div>
                       </td>
