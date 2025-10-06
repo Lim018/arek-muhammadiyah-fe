@@ -99,7 +99,7 @@ const DashboardPage = () => {
         setVillagesData([
           { 
             id: 1, 
-            name: 'Gubeng', 
+            name: 'Surabaya', 
             code: 'SBY-GBG-001', 
             color: '#3B82F6',
             members: 3,
@@ -109,7 +109,7 @@ const DashboardPage = () => {
           },
           { 
             id: 2, 
-            name: 'Airlangga', 
+            name: 'Gresik', 
             code: 'SBY-ARL-002', 
             color: '#8B5CF6',
             members: 2,
