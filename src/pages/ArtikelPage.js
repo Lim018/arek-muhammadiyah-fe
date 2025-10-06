@@ -1,77 +1,105 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
-import { FileText, Search, Plus, Edit, Trash2, Eye, Calendar, User } from 'lucide-react';
+import { FileText, Search, Plus, Edit, Trash2, Eye, Calendar, User, Tag } from 'lucide-react';
 import '../styles/CommonPages.css';
 
 const ArtikelPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [articles, setArticles] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedBidang, setSelectedBidang] = useState('semua');
+  const [selectedCategory, setSelectedCategory] = useState('semua');
   const [selectedStatus, setSelectedStatus] = useState('semua');
+  const [categories, setCategories] = useState([]);
 
   useEffect(() => {
-    // Simulasi loading data
-    setTimeout(() => {
-      setArticles([
-        {
-          id: 1,
-          title: 'Program Vaksinasi Gratis untuk Anggota Muhammadiyah',
-          content: 'Muhammadiyah mengadakan program vaksinasi gratis untuk seluruh anggota...',
-          bidang: 'Kesehatan',
-          author: 'Dr. Ahmad Syafi\'i',
-          publishDate: '2024-09-20',
-          status: 'published',
-          views: 245,
-          image: null
-        },
-        {
-          id: 2,
-          title: 'Beasiswa Pendidikan untuk Anak Kurang Mampu',
-          content: 'Dalam rangka meningkatkan akses pendidikan, Muhammadiyah memberikan beasiswa...',
-          bidang: 'Pendidikan',
-          author: 'Prof. Siti Maryam',
-          publishDate: '2024-09-19',
-          status: 'published',
-          views: 189,
-          image: null
-        },
-        {
-          id: 3,
-          title: 'Pelatihan Kewirausahaan untuk Anggota Muda',
-          content: 'Program pelatihan kewirausahaan khusus untuk anggota muda Muhammadiyah...',
-          bidang: 'Ekonomi',
-          author: 'Ir. Fatimah Zahra',
-          publishDate: '2024-09-18',
-          status: 'draft',
-          views: 0,
-          image: null
-        },
-        {
-          id: 4,
-          title: 'Kajian Rutin Minggu Pagi',
-          content: 'Kajian rutin setiap minggu pagi dengan tema yang berbeda setiap minggunya...',
-          bidang: 'Keagamaan',
-          author: 'Ustadz Muhammad Ali',
-          publishDate: '2024-09-17',
-          status: 'published',
-          views: 156,
-          image: null
-        },
-      ]);
-      setLoading(false);
-    }, 1000);
+    fetchCategories();
+    fetchArticles();
   }, []);
+
+  const fetchCategories = async () => {
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch('http://localhost:3000/api/categories?active=true');
+      setCategories([
+        { id: 1, name: 'Pendidikan', color: '#3B82F6' },
+        { id: 2, name: 'Kesehatan', color: '#10B981' },
+        { id: 3, name: 'Ekonomi', color: '#F59E0B' },
+        { id: 4, name: 'Keagamaan', color: '#8B5CF6' },
+      ]);
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const fetchArticles = async () => {
+    try {
+      // TODO: Replace with actual API call
+      // const response = await fetch('http://localhost:3000/api/articles');
+      
+      setTimeout(() => {
+        setArticles([
+          {
+            id: 1,
+            user_id: '081234567890',
+            category_id: 1,
+            title: 'Program Beasiswa 2025 Telah Dibuka',
+            slug: 'program-beasiswa-2025-telah-dibuka',
+            content: 'Organisasi kami dengan bangga mengumumkan pembukaan program beasiswa tahun 2025...',
+            feature_image: '/uploads/articles/beasiswa_2025.jpg',
+            is_published: true,
+            created_at: '2024-09-20',
+            updated_at: '2024-09-20',
+            user: { name: 'Budi Santoso' },
+            category: { name: 'Pendidikan', color: '#3B82F6' }
+          },
+          {
+            id: 2,
+            user_id: '081234567891',
+            category_id: 2,
+            title: 'Pemeriksaan Kesehatan Gratis Bulan Oktober',
+            slug: 'pemeriksaan-kesehatan-gratis-oktober',
+            content: 'Dalam rangka meningkatkan kesehatan anggota, organisasi akan menyelenggarakan...',
+            feature_image: '/uploads/articles/kesehatan_gratis.jpg',
+            is_published: true,
+            created_at: '2024-09-19',
+            updated_at: '2024-09-19',
+            user: { name: 'Siti Nurhaliza' },
+            category: { name: 'Kesehatan', color: '#10B981' }
+          },
+          {
+            id: 3,
+            user_id: '081234567890',
+            category_id: 3,
+            title: 'Pelatihan Kewirausahaan untuk Anggota',
+            slug: 'pelatihan-kewirausahaan-anggota',
+            content: 'Bidang Ekonomi mengadakan pelatihan kewirausahaan gratis...',
+            feature_image: '/uploads/articles/pelatihan_wirausaha.jpg',
+            is_published: false,
+            created_at: '2024-09-18',
+            updated_at: '2024-09-18',
+            user: { name: 'Budi Santoso' },
+            category: { name: 'Ekonomi', color: '#F59E0B' }
+          },
+        ]);
+        setLoading(false);
+      }, 1000);
+    } catch (error) {
+      console.error('Error fetching articles:', error);
+      setLoading(false);
+    }
+  };
 
   const filteredArticles = articles.filter(article => {
     const matchesSearch = article.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          article.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         article.author.toLowerCase().includes(searchTerm.toLowerCase());
+                         article.user?.name.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesBidang = selectedBidang === 'semua' || article.bidang === selectedBidang;
-    const matchesStatus = selectedStatus === 'semua' || article.status === selectedStatus;
+    const matchesCategory = selectedCategory === 'semua' || article.category_id === parseInt(selectedCategory);
+    const matchesStatus = selectedStatus === 'semua' || 
+                         (selectedStatus === 'published' && article.is_published) ||
+                         (selectedStatus === 'draft' && !article.is_published);
     
-    return matchesSearch && matchesBidang && matchesStatus;
+    return matchesSearch && matchesCategory && matchesStatus;
   });
 
   const handleDelete = (id) => {
@@ -79,8 +107,6 @@ const ArtikelPage = () => {
       setArticles(articles.filter(a => a.id !== id));
     }
   };
-
-  const bidangOptions = ['Pendidikan', 'Kesehatan', 'Ekonomi', 'Keagamaan'];
 
   return (
     <Layout>
@@ -113,22 +139,22 @@ const ArtikelPage = () => {
           <div className="stat-card green">
             <div className="stat-icon">✅</div>
             <div className="stat-content">
-              <div className="stat-number">{articles.filter(a => a.status === 'published').length}</div>
+              <div className="stat-number">{articles.filter(a => a.is_published).length}</div>
               <div className="stat-description">Artikel Terbit</div>
             </div>
           </div>
           <div className="stat-card yellow">
             <div className="stat-icon">📝</div>
             <div className="stat-content">
-              <div className="stat-number">{articles.filter(a => a.status === 'draft').length}</div>
+              <div className="stat-number">{articles.filter(a => !a.is_published).length}</div>
               <div className="stat-description">Draft</div>
             </div>
           </div>
           <div className="stat-card purple">
-            <div className="stat-icon">👀</div>
+            <div className="stat-icon">🏷️</div>
             <div className="stat-content">
-              <div className="stat-number">{articles.reduce((sum, a) => sum + a.views, 0)}</div>
-              <div className="stat-description">Total Views</div>
+              <div className="stat-number">{categories.length}</div>
+              <div className="stat-description">Kategori</div>
             </div>
           </div>
         </div>
@@ -149,13 +175,13 @@ const ArtikelPage = () => {
               </div>
               <div className="filter-section">
                 <select
-                  value={selectedBidang}
-                  onChange={(e) => setSelectedBidang(e.target.value)}
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
                   className="filter-select"
                 >
-                  <option value="semua">Semua Bidang</option>
-                  {bidangOptions.map(bidang => (
-                    <option key={bidang} value={bidang}>{bidang}</option>
+                  <option value="semua">Semua Kategori</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
                   ))}
                 </select>
                 <select
@@ -181,23 +207,34 @@ const ArtikelPage = () => {
                 <div key={article.id} className="article-card">
                   <div className="article-header">
                     <div className="article-meta">
-                      <span className={`bidang-badge ${article.bidang.toLowerCase()}`}>
-                        {article.bidang}
+                      <span 
+                        className="bidang-badge"
+                        style={{ 
+                          backgroundColor: article.category?.color || '#6b7280',
+                          color: 'white',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        <Tag size={12} />
+                        {article.category?.name || 'Tanpa Kategori'}
                       </span>
-                      <span className={`status-badge ${article.status === 'published' ? 'active' : 'inactive'}`}>
-                        {article.status === 'published' ? 'Terbit' : 'Draft'}
+                      <span className={`status-badge ${article.is_published ? 'active' : 'inactive'}`}>
+                        {article.is_published ? 'Terbit' : 'Draft'}
                       </span>
                     </div>
                     <div className="article-actions">
-                      <button className="action-btn view">
+                      <button className="action-btn view" title="Lihat">
                         <Eye size={16} />
                       </button>
-                      <button className="action-btn edit">
+                      <button className="action-btn edit" title="Edit">
                         <Edit size={16} />
                       </button>
                       <button 
                         className="action-btn delete"
                         onClick={() => handleDelete(article.id)}
+                        title="Hapus"
                       >
                         <Trash2 size={16} />
                       </button>
@@ -213,18 +250,12 @@ const ArtikelPage = () => {
                     <div className="article-info">
                       <div className="article-author">
                         <User size={14} />
-                        <span>{article.author}</span>
+                        <span>{article.user?.name || 'Unknown'}</span>
                       </div>
                       <div className="article-date">
                         <Calendar size={14} />
-                        <span>{new Date(article.publishDate).toLocaleDateString('id-ID')}</span>
+                        <span>{new Date(article.created_at).toLocaleDateString('id-ID')}</span>
                       </div>
-                      {article.status === 'published' && (
-                        <div className="article-views">
-                          <Eye size={14} />
-                          <span>{article.views} views</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
