@@ -1,44 +1,92 @@
 import React from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import './App.css';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import ProtectedRoute from './components/ProtectedRoute';
+import LoginPage from './pages/LoginPage';
 import DashboardPage from './pages/DashboardPage';
-import MobileAppPage from './pages/MobileAppPage';
 import AnggotaMUPage from './pages/AnggotaMUPage';
+import ArtikelPage from './pages/ArtikelPage';
 import BidangPage from './pages/BidangPage';
 import KategoriTiketPage from './pages/KategoriTiketPage';
+import MobileAppPage from './pages/MobileAppPage';
 import TiketPage from './pages/TiketPage';
-import ArtikelPage from './pages/ArtikelPage';
-import 'leaflet/dist/leaflet.css';
-
-// Fix untuk marker icons Leaflet
-import L from 'leaflet';
-import icon from 'leaflet/dist/images/marker-icon.png';
-import iconShadow from 'leaflet/dist/images/marker-shadow.png';
-
-let DefaultIcon = L.icon({
-  iconUrl: icon,
-  shadowUrl: iconShadow,
-  iconSize: [25, 41],
-  iconAnchor: [12, 41]
-});
-
-L.Marker.prototype.options.icon = DefaultIcon;
+import { authService } from './utils/auth';
 
 function App() {
   return (
     <Router>
-      <div className="App">
-        <Routes>
-          <Route path="/" element={<DashboardPage />} />
-          <Route path="/dashboard" element={<DashboardPage />} />
-          <Route path="/pengguna/mobile-app" element={<MobileAppPage />} />
-          <Route path="/pengguna/anggota-mu" element={<AnggotaMUPage />} />
-          <Route path="/bidang" element={<BidangPage />} />
-          <Route path="/tiket/kategori" element={<KategoriTiketPage />} />
-          <Route path="/tiket/list" element={<TiketPage />} />
-          <Route path="/artikel" element={<ArtikelPage />} />
-        </Routes>
-      </div>
+      <Routes>
+        {/* Public Routes */}
+        <Route 
+          path="/login" 
+          element={
+            authService.isAuthenticated() ? 
+              <Navigate to="/dashboard" replace /> : 
+              <LoginPage />
+          } 
+        />
+
+        {/* Protected Routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/anggota" 
+          element={
+            <ProtectedRoute>
+              <AnggotaMUPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/artikel" 
+          element={
+            <ProtectedRoute>
+              <ArtikelPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/bidang" 
+          element={
+            <ProtectedRoute>
+              <BidangPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/kategori-tiket" 
+          element={
+            <ProtectedRoute>
+              <KategoriTiketPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/mobile-app" 
+          element={
+            <ProtectedRoute>
+              <MobileAppPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tiket" 
+          element={
+            <ProtectedRoute>
+              <TiketPage />
+            </ProtectedRoute>
+          } 
+        />
+
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
     </Router>
   );
 }

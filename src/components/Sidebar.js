@@ -54,8 +54,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Users,
       expandable: true,
       subItems: [
-        { key: 'mobile-app', label: 'Mobile App', icon: Smartphone, path: '/pengguna/mobile-app' },
-        { key: 'anggota-mu', label: 'Anggota MU', icon: UserCheck, path: '/pengguna/anggota-mu' }
+        { key: 'mobile-app', label: 'Mobile App', icon: Smartphone, path: '/mobile-app' },
+        { key: 'anggota-mu', label: 'Anggota MU', icon: UserCheck, path: '/anggota' }
       ]
     },
     { 
@@ -70,8 +70,8 @@ const Sidebar = ({ isOpen, onClose }) => {
       icon: Ticket,
       expandable: true,
       subItems: [
-        { key: 'kategori', label: 'Kategori', icon: Tags, path: '/tiket/kategori' },
-        { key: 'tiket-list', label: 'Tiket', icon: Ticket, path: '/tiket/list' }
+        { key: 'kategori', label: 'Kategori', icon: Tags, path: '/kategori-tiket' },
+        { key: 'tiket-list', label: 'Tiket', icon: Ticket, path: '/tiket  ' }
       ]
     },
     { 
