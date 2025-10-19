@@ -104,6 +104,14 @@ export const api = {
       method: 'DELETE'
     }),
 
+  // MOBILE APP USERS
+  getMobileUsers: (params = {}) => {
+    const queryString = new URLSearchParams(params).toString();
+    return request(`/users/mobile?${queryString}`);
+  },
+  
+  getUser: (id) => request(`/users/${id}`),
+
   // VILLAGES
   getVillages: (params = {}) => {
     const queryString = new URLSearchParams(params).toString();

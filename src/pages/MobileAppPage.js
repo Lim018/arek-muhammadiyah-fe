@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import UserDetailModal from '../components/UserDetailModal'; // Impor komponen modal
 import { Search, Smartphone, Eye, MapPin, Phone, CreditCard } from 'lucide-react';
+import { api } from '../services/api';
 import '../styles/CommonPages.css';
 
 const MobileAppPage = () => {
@@ -9,6 +11,12 @@ const MobileAppPage = () => {
   const [loading, setLoading] = useState(true);
   const [selectedVillage, setSelectedVillage] = useState('semua');
   const [villages, setVillages] = useState([]);
+  const [error, setError] = useState(null);
+  
+  // State untuk modal
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
     fetchVillages();
@@ -17,71 +25,75 @@ const MobileAppPage = () => {
 
   const fetchVillages = async () => {
     try {
-      // TODO: Ganti dengan API asli
-      setVillages([
-        { id: 1, name: 'Gubeng' },
-        { id: 2, name: 'Airlangga' },
-        { id: 3, name: 'Wonokromo' },
-        { id: 4, name: 'Sawahan' },
-        { id: 5, name: 'Genteng' },
-      ]);
+      const response = await api.getVillages();
+      const villageData = response.data || response;
+      setVillages(Array.isArray(villageData) ? villageData : []);
     } catch (error) {
       console.error('Error fetching villages:', error);
+      setError('Gagal memuat data kelurahan');
     }
   };
 
   const fetchMobileUsers = async () => {
     try {
-      // TODO: Ganti dengan API call asli (filter is_mobile = true)
-      setTimeout(() => {
-        setUsers([
-          { 
-            id: '081234567894',
-            name: 'Joko Widodo',
-            telp: '081234567894',
-            village_id: 1,
-            village: { name: 'Gubeng' },
-            nik: '3578015234567894',
-            address: 'Jl. Gubeng Kertajaya No. 10, Surabaya',
-            is_mobile: true,
-            created_at: '2024-01-15'
-          },
-          { 
-            id: '081234567895',
-            name: 'Sri Mulyani',
-            telp: '081234567895',
-            village_id: 2,
-            village: { name: 'Airlangga' },
-            nik: '3578016234567895',
-            address: 'Jl. Airlangga Dalam No. 5, Surabaya',
-            is_mobile: true,
-            created_at: '2024-01-20'
-          },
-          { 
-            id: '081234567896',
-            name: 'Bambang Sutopo',
-            telp: '081234567896',
-            village_id: 3,
-            village: { name: 'Wonokromo' },
-            nik: '3578017234567896',
-            address: 'Jl. Wonokromo Indah No. 12, Surabaya',
-            is_mobile: true,
-            created_at: '2024-02-01'
-          },
-        ]);
-        setLoading(false);
-      }, 1000);
+      setLoading(true);
+      setError(null);
+      
+      const response = await api.getMobileUsers();
+      
+      if (response.success && response.data) {
+        setUsers(response.data);
+      } else if (Array.isArray(response)) {
+        setUsers(response);
+      } else {
+        console.warn('Unexpected response format:', response);
+        setUsers([]);
+      }
+      
+      setLoading(false);
     } catch (error) {
-      console.error('Error fetching users:', error);
+      console.error('Error fetching mobile users:', error);
+      setError(error.message || 'Gagal memuat data pengguna mobile');
+      setUsers([]);
       setLoading(false);
     }
   };
 
+  // Fungsi untuk membuka modal dan memuat detail user
+  const handleViewDetail = async (userId) => {
+    setShowModal(true);
+    setLoadingDetail(true);
+    setSelectedUser(null);
+    
+    try {
+      const response = await api.getUser(userId);
+      if (response.success && response.data) {
+        setSelectedUser(response.data);
+      } else if (response.id) { // Fallback untuk format respons yang berbeda
+        setSelectedUser(response);
+      }
+    } catch (error) {
+      console.error('Error fetching user detail:', error);
+      alert('Gagal memuat detail pengguna');
+      setShowModal(false);
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // Fungsi untuk menutup modal
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedUser(null);
+  };
+
+  // Filter pengguna berdasarkan pencarian dan kelurahan
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const searchTermLower = searchTerm.toLowerCase();
+    const matchesSearch = user.name.toLowerCase().includes(searchTermLower) ||
                          user.telp?.includes(searchTerm) ||
                          user.nik?.includes(searchTerm) ||
-                         user.village?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                         user.village?.name.toLowerCase().includes(searchTermLower);
     
     const matchesVillage = selectedVillage === 'semua' || user.village_id === parseInt(selectedVillage);
     
@@ -91,6 +103,7 @@ const MobileAppPage = () => {
   return (
     <Layout>
       <div className="page-container">
+        {/* Header Halaman */}
         <div className="page-header">
           <div className="page-title-section">
             <h1 className="page-title">
@@ -101,13 +114,20 @@ const MobileAppPage = () => {
           </div>
         </div>
 
-        {/* Stats Cards */}
+        {/* Notifikasi Error */}
+        {error && (
+          <div className="error-notification">
+            {error}
+          </div>
+        )}
+
+        {/* Kartu Statistik */}
         <div className="stats-grid">
           <div className="stat-card blue">
             <div className="stat-icon">📱</div>
             <div className="stat-content">
               <div className="stat-number">{users.length}</div>
-              <div className="stat-description">Total Pengguna Mobile</div>
+              <div className="stat-description">Total Pengguna</div>
             </div>
           </div>
           <div className="stat-card green">
@@ -126,7 +146,7 @@ const MobileAppPage = () => {
           </div>
         </div>
 
-        {/* Filters and Search */}
+        {/* Konten Utama (Tabel) */}
         <div className="content-card">
           <div className="card-header">
             <div className="search-filter-section">
@@ -155,7 +175,6 @@ const MobileAppPage = () => {
             </div>
           </div>
 
-          {/* Table Data */}
           <div className="table-container">
             <table className="data-table">
               <thead>
@@ -175,7 +194,9 @@ const MobileAppPage = () => {
                   </tr>
                 ) : filteredUsers.length === 0 ? (
                   <tr>
-                    <td colSpan="6" className="empty-cell">Tidak ada data yang ditemukan</td>
+                    <td colSpan="6" className="empty-cell">
+                      {error ? 'Terjadi kesalahan saat memuat data' : 'Tidak ada data yang ditemukan'}
+                    </td>
                   </tr>
                 ) : (
                   filteredUsers.map((user) => (
@@ -221,7 +242,11 @@ const MobileAppPage = () => {
                       </td>
                       <td>
                         <div className="action-buttons">
-                          <button className="action-btn view" title="Lihat Detail">
+                          <button 
+                            className="action-btn view" 
+                            title="Lihat Detail"
+                            onClick={() => handleViewDetail(user.id)}
+                          >
                             <Eye size={16} />
                           </button>
                         </div>
@@ -233,6 +258,14 @@ const MobileAppPage = () => {
             </table>
           </div>
         </div>
+
+        {/* Gunakan Komponen UserDetailModal */}
+        <UserDetailModal
+          isOpen={showModal}
+          onClose={closeModal}
+          user={selectedUser}
+          loading={loadingDetail}
+        />
       </div>
     </Layout>
   );
