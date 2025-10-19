@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
+import UserDetailModal from '../components/UserDetailModal';
 import { Search, Filter, UserCheck, Upload, Download, Eye, Edit, Trash2, Plus, MapPin } from 'lucide-react';
 import '../styles/CommonPages.css';
 import { api } from '../services/api';
@@ -14,6 +15,9 @@ const AnggotaMUPage = () => {
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [loadingDetail, setLoadingDetail] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     password: '',
@@ -110,6 +114,29 @@ const AnggotaMUPage = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleViewDetail = async (userId) => {
+    setShowDetailModal(true);
+    setLoadingDetail(true);
+    setSelectedUser(null);
+    try {
+      const response = await api.getUser(userId);
+      const userData = response.data || response;
+      setSelectedUser(userData);
+    } catch (err) {
+      console.error("Error fetching user detail:", err);
+      alert('Gagal memuat detail anggota.');
+      setShowDetailModal(false); // Tutup modal jika gagal
+    } finally {
+      setLoadingDetail(false);
+    }
+  };
+
+  // Fungsi untuk menutup modal detail
+  const closeDetailModal = () => {
+    setShowDetailModal(false);
+    setSelectedUser(null);
   };
 
   const filteredMembers = members.filter(member => {
@@ -454,7 +481,11 @@ const AnggotaMUPage = () => {
                       </td>
                       <td>
                         <div className="action-buttons">
-                          <button className="action-btn view" title="Lihat Detail">
+                          <button 
+                            className="action-btn view" 
+                            title="Lihat Detail"
+                            onClick={() => handleViewDetail(member.id)}
+                          >
                             <Eye size={16} />
                           </button>
                           <button className="action-btn edit" title="Edit">
@@ -835,6 +866,12 @@ const AnggotaMUPage = () => {
             </div>
           </div>
         )}
+        <UserDetailModal
+          isOpen={showDetailModal}
+          onClose={closeDetailModal}
+          user={selectedUser}
+          loading={loadingDetail}
+        />
       </div>
     </Layout>
   );
