@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Search, Filter, UserCheck, Upload, Download, Eye, Edit, Trash2, Plus, MapPin } from 'lucide-react';
 import '../styles/CommonPages.css';
+import { api } from '../services/api';
 
 const AnggotaMUPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -11,21 +12,42 @@ const AnggotaMUPage = () => {
   const [selectedCardStatus, setSelectedCardStatus] = useState('semua');
   const [villages, setVillages] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [error, setError] = useState(null);
+  const [formData, setFormData] = useState({
+    name: '',
+    password: '',
+    telp: '',
+    role_id: 3, // default: member
+    village_id: '',
+    nik: '',
+    address: '',
+    card_status: 'pending',
+    is_mobile: false
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
-    // Fetch villages
     fetchVillages();
-    // Fetch members
     fetchMembers();
   }, []);
 
   const fetchVillages = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const response = await fetch('http://localhost:3000/api/villages?active=true');
-      // const data = await response.json();
+      const response = await api.getVillages({ active: true });
       
-      // Dummy data
+      // Handle response format: { success, data: [...] } atau langsung array
+      const villagesData = response.data || response;
+      
+      if (Array.isArray(villagesData)) {
+        setVillages(villagesData);
+      } else {
+        console.error('Format villages tidak sesuai:', villagesData);
+      }
+    } catch (error) {
+      console.error('Error fetching villages:', error);
+      // Fallback ke dummy data jika API gagal
       setVillages([
         { id: 1, name: 'Gubeng', code: 'SBY-GBG-001' },
         { id: 2, name: 'Airlangga', code: 'SBY-ARL-002' },
@@ -33,114 +55,68 @@ const AnggotaMUPage = () => {
         { id: 4, name: 'Sawahan', code: 'SBY-SWH-004' },
         { id: 5, name: 'Genteng', code: 'SBY-GTG-005' },
       ]);
-    } catch (error) {
-      console.error('Error fetching villages:', error);
     }
   };
 
   const fetchMembers = async () => {
     try {
-      // TODO: Replace with actual API call
-      // const token = localStorage.getItem('token');
-      // const response = await fetch('http://localhost:3000/api/users?page=1&limit=100', {
-      //   headers: { 'Authorization': `Bearer ${token}` }
-      // });
-      // const data = await response.json();
+      setLoading(true);
+      setError(null);
       
-      // Dummy data sesuai struktur database baru
-      setTimeout(() => {
-        setMembers([
-          { 
-            id: '081234567890',
-            name: 'Budi Santoso',
-            telp: '081234567890',
-            village_id: 1,
-            village: { id: 1, name: 'Gubeng', code: 'SBY-GBG-001' },
-            nik: '3578011234567890',
-            address: 'Jl. Gubeng Pojok No. 15, Surabaya',
-            card_status: 'delivered',
-            role: { id: 1, name: 'admin' }
-          },
-          { 
-            id: '081234567891',
-            name: 'Siti Nurhaliza',
-            telp: '081234567891',
-            village_id: 2,
-            village: { id: 2, name: 'Airlangga', code: 'SBY-ARL-002' },
-            nik: '3578012234567891',
-            address: 'Jl. Airlangga No. 45, Surabaya',
-            card_status: 'delivered',
-            role: { id: 1, name: 'admin' }
-          },
-          { 
-            id: '081234567894',
-            name: 'Joko Widodo',
-            telp: '081234567894',
-            village_id: 1,
-            village: { id: 1, name: 'Gubeng', code: 'SBY-GBG-001' },
-            nik: '3578015234567894',
-            address: 'Jl. Gubeng Kertajaya No. 10, Surabaya',
-            card_status: 'delivered',
-            role: { id: 3, name: 'member' }
-          },
-          { 
-            id: '081234567895',
-            name: 'Sri Mulyani',
-            telp: '081234567895',
-            village_id: 2,
-            village: { id: 2, name: 'Airlangga', code: 'SBY-ARL-002' },
-            nik: '3578016234567895',
-            address: 'Jl. Airlangga Dalam No. 5, Surabaya',
-            card_status: 'delivered',
-            role: { id: 3, name: 'member' }
-          },
-          { 
-            id: '081234567896',
-            name: 'Bambang Sutopo',
-            telp: '081234567896',
-            village_id: 3,
-            village: { id: 3, name: 'Wonokromo', code: 'SBY-WNK-003' },
-            nik: '3578017234567896',
-            address: 'Jl. Wonokromo Indah No. 12, Surabaya',
-            card_status: 'approved',
-            role: { id: 3, name: 'member' }
-          },
-          { 
-            id: '081234567897',
-            name: 'Rina Susanti',
-            telp: '081234567897',
-            village_id: 4,
-            village: { id: 4, name: 'Sawahan', code: 'SBY-SWH-004' },
-            nik: '3578018234567897',
-            address: 'Jl. Sawahan Permai No. 7, Surabaya',
-            card_status: 'printed',
-            role: { id: 3, name: 'member' }
-          },
-          { 
-            id: '081234567898',
-            name: 'Agus Salim',
-            telp: '081234567898',
-            village_id: 5,
-            village: { id: 5, name: 'Genteng', code: 'SBY-GTG-005' },
-            nik: '3578019234567898',
-            address: 'Jl. Genteng Besar No. 34, Surabaya',
-            card_status: 'pending',
-            role: { id: 3, name: 'member' }
-          },
-        ]);
-        setLoading(false);
-      }, 1000);
+      // Call API with pagination params
+      const response = await api.getUsers({ 
+        page: 1, 
+        limit: 100 
+      });
+      
+      console.log('API Response:', response);
+      
+      // Handle response format
+      // Backend returns: { success: true, message: "...", data: [...] }
+      let membersData = [];
+      
+      if (response.data && Array.isArray(response.data)) {
+        membersData = response.data;
+      } else if (Array.isArray(response)) {
+        membersData = response;
+      } else {
+        throw new Error('Format response tidak sesuai');
+      }
+      
+      console.log('Members data:', membersData);
+      setMembers(membersData);
+      
     } catch (error) {
       console.error('Error fetching members:', error);
+      setError(error.message || 'Gagal memuat data anggota');
+      
+      // Optional: Show dummy data jika API gagal (untuk development)
+      // Uncomment jika ingin fallback ke dummy data
+      /*
+      setMembers([
+        { 
+          id: 1,
+          name: 'Budi Santoso',
+          telp: '081234567890',
+          village_id: 1,
+          village: { id: 1, name: 'Gubeng', code: 'SBY-GBG-001' },
+          nik: '3578011234567890',
+          address: 'Jl. Gubeng Pojok No. 15, Surabaya',
+          card_status: 'delivered',
+          role: { id: 1, name: 'admin' }
+        },
+      ]);
+      */
+    } finally {
       setLoading(false);
     }
   };
 
   const filteredMembers = members.filter(member => {
-    const matchesSearch = member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.nik?.includes(searchTerm) ||
                          member.telp?.includes(searchTerm) ||
-                         member.village?.name.toLowerCase().includes(searchTerm.toLowerCase());
+                         member.village?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesVillage = selectedVillage === 'semua' || member.village_id === parseInt(selectedVillage);
     const matchesCardStatus = selectedCardStatus === 'semua' || member.card_status === selectedCardStatus;
@@ -172,6 +148,131 @@ const AnggotaMUPage = () => {
     delivered: members.filter(m => m.card_status === 'delivered').length,
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
+      return;
+    }
+
+    try {
+      await api.deleteUser(id);
+      // Refresh data setelah delete
+      fetchMembers();
+      alert('Anggota berhasil dihapus');
+    } catch (error) {
+      console.error('Error deleting member:', error);
+      alert('Gagal menghapus anggota: ' + error.message);
+    }
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? checked : value
+    }));
+    // Clear error untuk field yang sedang diubah
+    if (formErrors[name]) {
+      setFormErrors(prev => ({ ...prev, [name]: '' }));
+    }
+  };
+
+  const validateForm = () => {
+    const errors = {};
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Nama wajib diisi';
+    }
+    
+    if (!formData.password.trim()) {
+      errors.password = 'Password wajib diisi';
+    } else if (formData.password.length < 6) {
+      errors.password = 'Password minimal 6 karakter';
+    }
+    
+    if (!formData.telp.trim()) {
+      errors.telp = 'Nomor telepon wajib diisi';
+    } else if (!/^08\d{8,12}$/.test(formData.telp)) {
+      errors.telp = 'Format nomor telepon tidak valid (contoh: 081234567890)';
+    }
+    
+    if (!formData.village_id) {
+      errors.village_id = 'Kelurahan wajib dipilih';
+    }
+    
+    if (!formData.nik.trim()) {
+      errors.nik = 'NIK wajib diisi';
+    } else if (!/^\d{16}$/.test(formData.nik)) {
+      errors.nik = 'NIK harus 16 digit angka';
+    }
+    
+    if (!formData.address.trim()) {
+      errors.address = 'Alamat wajib diisi';
+    }
+    
+    setFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const handleSubmitAdd = async (e) => {
+    e.preventDefault();
+    
+    if (!validateForm()) {
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      // Convert village_id dan role_id ke integer
+      const payload = {
+        ...formData,
+        role_id: parseInt(formData.role_id),
+        village_id: parseInt(formData.village_id)
+      };
+      
+      console.log('Submitting payload:', payload);
+      
+      const response = await api.createUser(payload);
+      
+      console.log('Create user response:', response);
+      
+      // Tutup modal dan reset form
+      setShowAddModal(false);
+      resetForm();
+      
+      // Refresh data
+      await fetchMembers();
+      
+      alert('Anggota berhasil ditambahkan!');
+      
+    } catch (error) {
+      console.error('Error creating user:', error);
+      alert('Gagal menambahkan anggota: ' + error.message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      password: '',
+      telp: '',
+      role_id: 3,
+      village_id: '',
+      nik: '',
+      address: '',
+      card_status: 'pending',
+      is_mobile: false
+    });
+    setFormErrors({});
+  };
+
+  const handleCloseAddModal = () => {
+    setShowAddModal(false);
+    resetForm();
+  };
+
   return (
     <Layout>
       <div className="page-container">
@@ -191,12 +292,29 @@ const AnggotaMUPage = () => {
               <Upload size={16} />
               Upload Data Sensus
             </button>
-            <button className="btn btn-primary">
+            <button 
+              className="btn btn-primary"
+              onClick={() => setShowAddModal(true)}
+            >
               <Plus size={16} />
               Tambah Anggota
             </button>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div style={{
+            padding: '12px 16px',
+            background: '#FEE2E2',
+            border: '1px solid #FCA5A5',
+            borderRadius: '8px',
+            color: '#991B1B',
+            marginBottom: '16px'
+          }}>
+            ⚠️ {error}
+          </div>
+        )}
 
         {/* Stats Cards */}
         <div className="stats-grid">
@@ -293,7 +411,9 @@ const AnggotaMUPage = () => {
                   </tr>
                 ) : filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="empty-cell">Tidak ada data yang ditemukan</td>
+                    <td colSpan="7" className="empty-cell">
+                      {error ? 'Gagal memuat data' : 'Tidak ada data yang ditemukan'}
+                    </td>
                   </tr>
                 ) : (
                   filteredMembers.map((member) => (
@@ -340,7 +460,11 @@ const AnggotaMUPage = () => {
                           <button className="action-btn edit" title="Edit">
                             <Edit size={16} />
                           </button>
-                          <button className="action-btn delete" title="Hapus">
+                          <button 
+                            className="action-btn delete" 
+                            title="Hapus"
+                            onClick={() => handleDelete(member.id)}
+                          >
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -421,6 +545,292 @@ const AnggotaMUPage = () => {
                     </pre>
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Member Modal */}
+        {showAddModal && (
+          <div className="modal-overlay" onClick={handleCloseAddModal}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+              <div className="modal-header">
+                <h2>Tambah Anggota Baru</h2>
+                <button 
+                  className="modal-close"
+                  onClick={handleCloseAddModal}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <form onSubmit={handleSubmitAdd}>
+                  <div style={{ display: 'grid', gap: '16px' }}>
+                    
+                    {/* Nama */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        Nama Lengkap <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        placeholder="Masukkan nama lengkap"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.name ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      {formErrors.name && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.name}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Password */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        Password <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        placeholder="Minimal 6 karakter"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.password ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      {formErrors.password && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.password}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row: Telepon dan Role */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          No. Telepon <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="telp"
+                          value={formData.telp}
+                          onChange={handleInputChange}
+                          placeholder="081234567890"
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.telp ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        {formErrors.telp && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.telp}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Role
+                        </label>
+                        <select
+                          name="role_id"
+                          value={formData.role_id}
+                          onChange={handleInputChange}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <option value="1">Admin</option>
+                          <option value="2">Koordinator</option>
+                          <option value="3">Member</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* NIK */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        NIK (16 digit) <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="nik"
+                        value={formData.nik}
+                        onChange={handleInputChange}
+                        placeholder="3507091203000001"
+                        maxLength="16"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.nik ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      {formErrors.nik && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.nik}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Kelurahan */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        Kelurahan <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <select
+                        name="village_id"
+                        value={formData.village_id}
+                        onChange={handleInputChange}
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.village_id ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      >
+                        <option value="">Pilih Kelurahan</option>
+                        {villages.map(village => (
+                          <option key={village.id} value={village.id}>
+                            {village.name} ({village.code})
+                          </option>
+                        ))}
+                      </select>
+                      {formErrors.village_id && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.village_id}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Alamat */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        Alamat Lengkap <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <textarea
+                        name="address"
+                        value={formData.address}
+                        onChange={handleInputChange}
+                        placeholder="Jl. Merdeka No. 45, Surabaya"
+                        rows="3"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.address ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px',
+                          fontFamily: 'inherit',
+                          resize: 'vertical'
+                        }}
+                      />
+                      {formErrors.address && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.address}
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Row: Status Kartu dan Is Mobile */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Status Kartu
+                        </label>
+                        <select
+                          name="card_status"
+                          value={formData.card_status}
+                          onChange={handleInputChange}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <option value="pending">Pending</option>
+                          <option value="approved">Disetujui</option>
+                          <option value="printed">Dicetak</option>
+                          <option value="delivered">Terkirim</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          &nbsp;
+                        </label>
+                        <label style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '8px',
+                          padding: '10px 12px',
+                          cursor: 'pointer'
+                        }}>
+                          <input
+                            type="checkbox"
+                            name="is_mobile"
+                            checked={formData.is_mobile}
+                            onChange={handleInputChange}
+                            style={{ cursor: 'pointer' }}
+                          />
+                          <span>Akses Mobile App</span>
+                        </label>
+                      </div>
+                    </div>
+
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'flex-end', 
+                    gap: '12px',
+                    marginTop: '24px',
+                    paddingTop: '16px',
+                    borderTop: '1px solid #e5e7eb'
+                  }}>
+                    <button
+                      type="button"
+                      onClick={handleCloseAddModal}
+                      className="btn btn-outline"
+                      disabled={isSubmitting}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="btn btn-primary"
+                      disabled={isSubmitting}
+                    >
+                      {isSubmitting ? 'Menyimpan...' : 'Simpan Anggota'}
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           </div>
