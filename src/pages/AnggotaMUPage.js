@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import UserDetailModal from '../components/UserDetailModal';
+import UserEditModal from '../components/UserEditModal';
 import { Search, Filter, UserCheck, Upload, Download, Eye, Edit, Trash2, Plus, MapPin } from 'lucide-react';
 import '../styles/CommonPages.css';
 import { api } from '../services/api';
@@ -18,6 +19,8 @@ const AnggotaMUPage = () => {
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [selectedUser, setSelectedUser] = useState(null);
   const [loadingDetail, setLoadingDetail] = useState(false);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     password: '',
@@ -133,10 +136,34 @@ const AnggotaMUPage = () => {
     }
   };
 
-  // Fungsi untuk menutup modal detail
   const closeDetailModal = () => {
     setShowDetailModal(false);
     setSelectedUser(null);
+  };
+
+  const handleOpenEditModal = (user) => {
+    setEditingUser(user);
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditingUser(null);
+  };
+
+  const handleUpdateUser = async (userId, payload) => {
+    try {
+      // Asumsi ada method `api.updateUser(id, data)` di service Anda
+      await api.updateUser(userId, payload);
+      alert('Data anggota berhasil diperbarui!');
+      handleCloseEditModal();
+      await fetchMembers(); // Refresh tabel data
+    } catch (error) {
+      console.error('Error updating user:', error);
+      const errorMessage = error.response?.data?.message || error.message;
+      alert(`Gagal memperbarui data: ${errorMessage}`);
+      // Biarkan modal tetap terbuka jika terjadi error
+    }
   };
 
   const filteredMembers = members.filter(member => {
@@ -488,7 +515,11 @@ const AnggotaMUPage = () => {
                           >
                             <Eye size={16} />
                           </button>
-                          <button className="action-btn edit" title="Edit">
+                          <button 
+                            className="action-btn edit" 
+                            title="Edit"
+                            onClick={() => handleOpenEditModal(member)}
+                          >
                             <Edit size={16} />
                           </button>
                           <button 
@@ -866,6 +897,13 @@ const AnggotaMUPage = () => {
             </div>
           </div>
         )}
+        <UserEditModal
+          isOpen={showEditModal}
+          onClose={handleCloseEditModal}
+          user={editingUser}
+          villages={villages}
+          onSuccess={handleUpdateUser}
+        />
         <UserDetailModal
           isOpen={showDetailModal}
           onClose={closeDetailModal}
