@@ -5,14 +5,17 @@ import UserEditModal from '../components/UserEditModal';
 import { Search, Filter, UserCheck, Upload, Download, Eye, Edit, Trash2, Plus, MapPin } from 'lucide-react';
 import '../styles/CommonPages.css';
 import { api } from '../services/api';
+import { exportMembersToCSV } from '../utils/exportUtils';
 
 const AnggotaMUPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedVillage, setSelectedVillage] = useState('semua');
-  const [selectedCardStatus, setSelectedCardStatus] = useState('semua');
+  const [selectedSubVillage, setSelectedSubVillage] = useState('semua');
   const [villages, setVillages] = useState([]);
+  const [subVillages, setSubVillages] = useState([]);
+  const [filteredSubVillages, setFilteredSubVillages] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState(null);
@@ -24,27 +27,34 @@ const AnggotaMUPage = () => {
   const [formData, setFormData] = useState({
     name: '',
     password: '',
+    birth_date: '',
     telp: '',
-    role_id: 3, // default: member
-    village_id: '',
+    gender: 'male',
+    job: '',
+    role_id: 3,
+    sub_village_id: '',
     nik: '',
     address: '',
-    card_status: 'pending',
     is_mobile: false
   });
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedVillageForAdd, setSelectedVillageForAdd] = useState('');
+  const [filteredSubVillagesForAdd, setFilteredSubVillagesForAdd] = useState([]);
 
   useEffect(() => {
     fetchVillages();
+    fetchSubVillages();
     fetchMembers();
   }, []);
+
+  useEffect(() => {
+    filterSubVillagesByVillage(selectedVillage);
+  }, [selectedVillage, subVillages]);
 
   const fetchVillages = async () => {
     try {
       const response = await api.getVillages({ active: true });
-      
-      // Handle response format: { success, data: [...] } atau langsung array
       const villagesData = response.data || response;
       
       if (Array.isArray(villagesData)) {
@@ -54,15 +64,46 @@ const AnggotaMUPage = () => {
       }
     } catch (error) {
       console.error('Error fetching villages:', error);
-      // Fallback ke dummy data jika API gagal
       setVillages([
-        { id: 1, name: 'Gubeng', code: 'SBY-GBG-001' },
-        { id: 2, name: 'Airlangga', code: 'SBY-ARL-002' },
-        { id: 3, name: 'Wonokromo', code: 'SBY-WNK-003' },
-        { id: 4, name: 'Sawahan', code: 'SBY-SWH-004' },
-        { id: 5, name: 'Genteng', code: 'SBY-GTG-005' },
+        { id: 1, name: 'Surabaya', code: 'KAB-SBY-001' },
+        { id: 2, name: 'Sidoarjo', code: 'KAB-SDA-002' },
+        { id: 3, name: 'Gresik', code: 'KAB-GRK-003' },
       ]);
     }
+  };
+
+  const fetchSubVillages = async () => {
+    try {
+      const response = await api.getSubVillages({ active: true });
+      const subVillagesData = response.data || response;
+      
+      if (Array.isArray(subVillagesData)) {
+        setSubVillages(subVillagesData);
+      } else {
+        console.error('Format sub villages tidak sesuai:', subVillagesData);
+      }
+    } catch (error) {
+      console.error('Error fetching sub villages:', error);
+    }
+  };
+
+  const filterSubVillagesByVillage = (villageId) => {
+    if (villageId === 'semua') {
+      setFilteredSubVillages([]);
+      setSelectedSubVillage('semua');
+      return;
+    }
+    const filtered = subVillages.filter(sv => sv.village_id === parseInt(villageId));
+    setFilteredSubVillages(filtered);
+  };
+
+  const filterSubVillagesForAddForm = (villageId) => {
+    if (!villageId) {
+      setFilteredSubVillagesForAdd([]);
+      return;
+    }
+    const filtered = subVillages.filter(sv => sv.village_id === parseInt(villageId));
+    setFilteredSubVillagesForAdd(filtered);
   };
 
   const fetchMembers = async () => {
@@ -70,7 +111,6 @@ const AnggotaMUPage = () => {
       setLoading(true);
       setError(null);
       
-      // Call API with pagination params
       const response = await api.getUsers({ 
         page: 1, 
         limit: 100 
@@ -78,8 +118,6 @@ const AnggotaMUPage = () => {
       
       console.log('API Response:', response);
       
-      // Handle response format
-      // Backend returns: { success: true, message: "...", data: [...] }
       let membersData = [];
       
       if (response.data && Array.isArray(response.data)) {
@@ -96,27 +134,17 @@ const AnggotaMUPage = () => {
     } catch (error) {
       console.error('Error fetching members:', error);
       setError(error.message || 'Gagal memuat data anggota');
-      
-      // Optional: Show dummy data jika API gagal (untuk development)
-      // Uncomment jika ingin fallback ke dummy data
-      /*
-      setMembers([
-        { 
-          id: 1,
-          name: 'Budi Santoso',
-          telp: '081234567890',
-          village_id: 1,
-          village: { id: 1, name: 'Gubeng', code: 'SBY-GBG-001' },
-          nik: '3578011234567890',
-          address: 'Jl. Gubeng Pojok No. 15, Surabaya',
-          card_status: 'delivered',
-          role: { id: 1, name: 'admin' }
-        },
-      ]);
-      */
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleExportData = () => {
+    if (filteredMembers.length === 0) {
+      alert('Tidak ada data untuk diekspor.');
+      return;
+    }
+    exportMembersToCSV(filteredMembers);
   };
 
   const handleViewDetail = async (userId) => {
@@ -130,7 +158,7 @@ const AnggotaMUPage = () => {
     } catch (err) {
       console.error("Error fetching user detail:", err);
       alert('Gagal memuat detail anggota.');
-      setShowDetailModal(false); // Tutup modal jika gagal
+      setShowDetailModal(false);
     } finally {
       setLoadingDetail(false);
     }
@@ -153,16 +181,14 @@ const AnggotaMUPage = () => {
 
   const handleUpdateUser = async (userId, payload) => {
     try {
-      // Asumsi ada method `api.updateUser(id, data)` di service Anda
       await api.updateUser(userId, payload);
       alert('Data anggota berhasil diperbarui!');
       handleCloseEditModal();
-      await fetchMembers(); // Refresh tabel data
+      await fetchMembers();
     } catch (error) {
       console.error('Error updating user:', error);
       const errorMessage = error.response?.data?.message || error.message;
       alert(`Gagal memperbarui data: ${errorMessage}`);
-      // Biarkan modal tetap terbuka jika terjadi error
     }
   };
 
@@ -170,36 +196,28 @@ const AnggotaMUPage = () => {
     const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.nik?.includes(searchTerm) ||
                          member.telp?.includes(searchTerm) ||
-                         member.village?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                         member.sub_village?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.sub_village?.village?.name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesVillage = selectedVillage === 'semua' || member.village_id === parseInt(selectedVillage);
-    const matchesCardStatus = selectedCardStatus === 'semua' || member.card_status === selectedCardStatus;
+    const matchesVillage = selectedVillage === 'semua' || 
+                          member.sub_village?.village_id === parseInt(selectedVillage);
     
-    return matchesSearch && matchesVillage && matchesCardStatus;
+    const matchesSubVillage = selectedSubVillage === 'semua' || 
+                             member.sub_village_id === parseInt(selectedSubVillage);
+    
+    return matchesSearch && matchesVillage && matchesSubVillage;
   });
 
-  const cardStatusOptions = [
-    { value: 'pending', label: 'Pending', color: 'yellow' },
-    { value: 'approved', label: 'Disetujui', color: 'blue' },
-    { value: 'printed', label: 'Dicetak', color: 'purple' },
-    { value: 'delivered', label: 'Terkirim', color: 'green' }
-  ];
-
-  const getCardStatusLabel = (status) => {
-    const statusObj = cardStatusOptions.find(s => s.value === status);
-    return statusObj ? statusObj.label : status;
-  };
-
-  const getCardStatusColor = (status) => {
-    const statusObj = cardStatusOptions.find(s => s.value === status);
-    return statusObj ? statusObj.color : 'gray';
-  };
-
-  const cardStatusCounts = {
-    pending: members.filter(m => m.card_status === 'pending').length,
-    approved: members.filter(m => m.card_status === 'approved').length,
-    printed: members.filter(m => m.card_status === 'printed').length,
-    delivered: members.filter(m => m.card_status === 'delivered').length,
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return null;
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
   };
 
   const handleDelete = async (id) => {
@@ -209,7 +227,6 @@ const AnggotaMUPage = () => {
 
     try {
       await api.deleteUser(id);
-      // Refresh data setelah delete
       fetchMembers();
       alert('Anggota berhasil dihapus');
     } catch (error) {
@@ -224,40 +241,20 @@ const AnggotaMUPage = () => {
       ...prev,
       [name]: type === 'checkbox' ? checked : value
     }));
-    // Clear error untuk field yang sedang diubah
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
+  const handleVillageChangeForAdd = (e) => {
+    const villageId = e.target.value;
+    setSelectedVillageForAdd(villageId);
+    filterSubVillagesForAddForm(villageId);
+    setFormData(prev => ({ ...prev, sub_village_id: '' }));
+  };
+
   const validateForm = () => {
     const errors = {};
-    
-    if (!formData.name.trim()) {
-      errors.name = 'Nama wajib diisi';
-    }
-    
-    if (!formData.password.trim()) {
-      errors.password = 'Password wajib diisi';
-    } else if (formData.password.length < 6) {
-      errors.password = 'Password minimal 6 karakter';
-    }
-    
-    if (!formData.telp.trim()) {
-      errors.telp = 'Nomor telepon wajib diisi';
-    } else if (!/^08\d{8,12}$/.test(formData.telp)) {
-      errors.telp = 'Format nomor telepon tidak valid (contoh: 081234567890)';
-    }
-    
-    if (!formData.village_id) {
-      errors.village_id = 'Kelurahan wajib dipilih';
-    }
-    
-    if (!formData.nik.trim()) {
-      errors.nik = 'NIK wajib diisi';
-    } else if (!/^\d{16}$/.test(formData.nik)) {
-      errors.nik = 'NIK harus 16 digit angka';
-    }
     
     if (!formData.address.trim()) {
       errors.address = 'Alamat wajib diisi';
@@ -277,11 +274,18 @@ const AnggotaMUPage = () => {
     setIsSubmitting(true);
     
     try {
-      // Convert village_id dan role_id ke integer
       const payload = {
-        ...formData,
+        name: formData.name.trim(),
+        password: formData.password,
+        birth_date: formData.birth_date,
+        telp: formData.telp.trim(),
+        gender: formData.gender,
+        job: formData.job.trim() || null,
         role_id: parseInt(formData.role_id),
-        village_id: parseInt(formData.village_id)
+        sub_village_id: parseInt(formData.sub_village_id),
+        nik: formData.nik.trim(),
+        address: formData.address.trim(),
+        is_mobile: formData.is_mobile
       };
       
       console.log('Submitting payload:', payload);
@@ -290,13 +294,9 @@ const AnggotaMUPage = () => {
       
       console.log('Create user response:', response);
       
-      // Tutup modal dan reset form
       setShowAddModal(false);
       resetForm();
-      
-      // Refresh data
       await fetchMembers();
-      
       alert('Anggota berhasil ditambahkan!');
       
     } catch (error) {
@@ -311,15 +311,19 @@ const AnggotaMUPage = () => {
     setFormData({
       name: '',
       password: '',
+      birth_date: '',
       telp: '',
+      gender: 'male',
+      job: '',
       role_id: 3,
-      village_id: '',
+      sub_village_id: '',
       nik: '',
       address: '',
-      card_status: 'pending',
       is_mobile: false
     });
     setFormErrors({});
+    setSelectedVillageForAdd('');
+    setFilteredSubVillagesForAdd([]);
   };
 
   const handleCloseAddModal = () => {
@@ -356,7 +360,6 @@ const AnggotaMUPage = () => {
           </div>
         </div>
 
-        {/* Error Message */}
         {error && (
           <div style={{
             padding: '12px 16px',
@@ -379,25 +382,31 @@ const AnggotaMUPage = () => {
               <div className="stat-description">Total Anggota</div>
             </div>
           </div>
-          <div className="stat-card yellow">
-            <div className="stat-icon">⏳</div>
+          <div className="stat-card green">
+            <div className="stat-icon"></div>
             <div className="stat-content">
-              <div className="stat-number">{cardStatusCounts.pending}</div>
-              <div className="stat-description">Pending</div>
+              <div className="stat-number">
+                {members.filter(m => m.gender === 'male').length}
+              </div>
+              <div className="stat-description">Laki-laki</div>
             </div>
           </div>
           <div className="stat-card purple">
-            <div className="stat-icon">🖨️</div>
+            <div className="stat-icon"></div>
             <div className="stat-content">
-              <div className="stat-number">{cardStatusCounts.printed}</div>
-              <div className="stat-description">Dicetak</div>
+              <div className="stat-number">
+                {members.filter(m => m.gender === 'female').length}
+              </div>
+              <div className="stat-description">Perempuan</div>
             </div>
           </div>
-          <div className="stat-card green">
-            <div className="stat-icon">✅</div>
+          <div className="stat-card yellow">
+            <div className="stat-icon">📱</div>
             <div className="stat-content">
-              <div className="stat-number">{cardStatusCounts.delivered}</div>
-              <div className="stat-description">Terkirim</div>
+              <div className="stat-number">
+                {members.filter(m => m.is_mobile).length}
+              </div>
+              <div className="stat-description">Pengguna Mobile</div>
             </div>
           </div>
         </div>
@@ -410,7 +419,7 @@ const AnggotaMUPage = () => {
                 <Search size={20} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Cari berdasarkan nama, NIK, telepon, atau kelurahan..."
+                  placeholder="Cari berdasarkan nama, NIK, telepon, atau wilayah..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input"
@@ -422,22 +431,25 @@ const AnggotaMUPage = () => {
                   onChange={(e) => setSelectedVillage(e.target.value)}
                   className="filter-select"
                 >
-                  <option value="semua">Semua Kelurahan</option>
+                  <option value="semua">Semua Kabupaten/Kota</option>
                   {villages.map(village => (
                     <option key={village.id} value={village.id}>{village.name}</option>
                   ))}
                 </select>
                 <select
-                  value={selectedCardStatus}
-                  onChange={(e) => setSelectedCardStatus(e.target.value)}
+                  value={selectedSubVillage}
+                  onChange={(e) => setSelectedSubVillage(e.target.value)}
                   className="filter-select"
+                  disabled={selectedVillage === 'semua'}
                 >
-                  <option value="semua">Semua Status Kartu</option>
-                  {cardStatusOptions.map(status => (
-                    <option key={status.value} value={status.value}>{status.label}</option>
+                  <option value="semua">Semua Kecamatan</option>
+                  {filteredSubVillages.map(subVillage => (
+                    <option key={subVillage.id} value={subVillage.id}>
+                      {subVillage.name}
+                    </option>
                   ))}
                 </select>
-                <button className="btn btn-outline">
+                <button className="btn btn-outline" onClick={handleExportData}>
                   <Download size={16} />
                   Export Data
                 </button>
@@ -450,22 +462,23 @@ const AnggotaMUPage = () => {
               <thead>
                 <tr>
                   <th>Nama</th>
+                  <th>Jenis Kelamin</th>
+                  <th>Usia</th>
                   <th>No. Telepon</th>
-                  <th>Kelurahan</th>
+                  <th>Wilayah</th>
                   <th>NIK</th>
-                  <th>Alamat</th>
-                  <th>Status Kartu</th>
+                  <th>Pekerjaan</th>
                   <th>Aksi</th>
                 </tr>
               </thead>
               <tbody>
                 {loading ? (
                   <tr>
-                    <td colSpan="7" className="loading-cell">Memuat data...</td>
+                    <td colSpan="8" className="loading-cell">Memuat data...</td>
                   </tr>
                 ) : filteredMembers.length === 0 ? (
                   <tr>
-                    <td colSpan="7" className="empty-cell">
+                    <td colSpan="8" className="empty-cell">
                       {error ? 'Gagal memuat data' : 'Tidak ada data yang ditemukan'}
                     </td>
                   </tr>
@@ -474,12 +487,34 @@ const AnggotaMUPage = () => {
                     <tr key={member.id}>
                       <td className="member-name">
                         <strong>{member.name}</strong>
+                        {member.is_mobile && (
+                          <span style={{
+                            marginLeft: '6px',
+                            fontSize: '0.75rem',
+                            color: '#059669',
+                            backgroundColor: '#d1fae5',
+                            padding: '2px 6px',
+                            borderRadius: '8px'
+                          }}>
+                            📱
+                          </span>
+                        )}
+                      </td>
+                      <td>
+                        {member.gender === 'male' ? 'Laki-laki' : 'Perempuan'}
+                      </td>
+                      <td>
+                        {member.birth_date ? `${calculateAge(member.birth_date)} tahun` : '-'}
                       </td>
                       <td>{member.telp || '-'}</td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <MapPin size={14} style={{ color: '#6b7280' }} />
-                          {member.village?.name || '-'}
+                        <div style={{ fontSize: '0.85rem' }}>
+                          <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                            {member.sub_village?.name || '-'}
+                          </div>
+                          <div style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+                            {member.sub_village?.village?.name || '-'}
+                          </div>
                         </div>
                       </td>
                       <td>
@@ -492,20 +527,7 @@ const AnggotaMUPage = () => {
                           {member.nik || '-'}
                         </code>
                       </td>
-                      <td style={{ maxWidth: '250px' }}>
-                        <div style={{ 
-                          overflow: 'hidden', 
-                          textOverflow: 'ellipsis', 
-                          whiteSpace: 'nowrap' 
-                        }} title={member.address}>
-                          {member.address || '-'}
-                        </div>
-                      </td>
-                      <td>
-                        <span className={`status-badge ${getCardStatusColor(member.card_status)}`}>
-                          {getCardStatusLabel(member.card_status)}
-                        </span>
-                      </td>
+                      <td>{member.job || '-'}</td>
                       <td>
                         <div className="action-buttons">
                           <button 
@@ -538,7 +560,6 @@ const AnggotaMUPage = () => {
             </table>
           </div>
 
-          {/* Pagination */}
           {!loading && filteredMembers.length > 0 && (
             <div className="pagination">
               <button className="btn btn-outline" disabled>
@@ -586,10 +607,10 @@ const AnggotaMUPage = () => {
                   <h4>Petunjuk Upload:</h4>
                   <ul>
                     <li>File harus berformat .xlsx atau .csv</li>
-                    <li>Kolom wajib: <strong>id, name, password, telp, village_id, nik, address</strong></li>
-                    <li>Format CSV: id,name,password,telp,role_id,village_id,nik,address,card_status</li>
+                    <li>Kolom wajib: <strong>name, password, birth_date, telp, gender, sub_village_id, nik, address</strong></li>
+                    <li>Format tanggal: YYYY-MM-DD (contoh: 1990-05-15)</li>
+                    <li>Gender: male atau female</li>
                     <li>Maksimal 1000 data per upload</li>
-                    <li>Password akan di-hash secara otomatis oleh sistem</li>
                   </ul>
                   <div style={{ marginTop: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '6px' }}>
                     <strong>Contoh format CSV:</strong>
@@ -601,9 +622,8 @@ const AnggotaMUPage = () => {
                       borderRadius: '4px',
                       marginTop: '8px'
                     }}>
-{`id,name,password,telp,role_id,village_id,nik,address,card_status
-081234567890,Budi,password123,081234567890,3,1,3578011234567890,Jl. Test,pending
-081234567891,Ani,password123,081234567891,3,2,3578012234567891,Jl. Test 2,pending`}
+{`name,password,birth_date,telp,gender,job,role_id,sub_village_id,nik,address
+Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test`}
                     </pre>
                   </div>
                 </div>
@@ -615,7 +635,7 @@ const AnggotaMUPage = () => {
         {/* Add Member Modal */}
         {showAddModal && (
           <div className="modal-overlay" onClick={handleCloseAddModal}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px' }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
               <div className="modal-header">
                 <h2>Tambah Anggota Baru</h2>
                 <button 
@@ -681,6 +701,54 @@ const AnggotaMUPage = () => {
                       )}
                     </div>
 
+                    {/* Row: Jenis Kelamin dan Tanggal Lahir */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Jenis Kelamin <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          name="gender"
+                          value={formData.gender}
+                          onChange={handleInputChange}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <option value="male">Laki-laki</option>
+                          <option value="female">Perempuan</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Tanggal Lahir <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="date"
+                          name="birth_date"
+                          value={formData.birth_date}
+                          onChange={handleInputChange}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.birth_date ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        {formErrors.birth_date && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.birth_date}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+
                     {/* Row: Telepon dan Role */}
                     <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
                       <div>
@@ -725,10 +793,31 @@ const AnggotaMUPage = () => {
                           }}
                         >
                           <option value="1">Admin</option>
-                          <option value="2">Koordinator</option>
+                          <option value="2">Operator</option>
                           <option value="3">Member</option>
                         </select>
                       </div>
+                    </div>
+
+                    {/* Pekerjaan */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        Pekerjaan
+                      </label>
+                      <input
+                        type="text"
+                        name="job"
+                        value={formData.job}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: Guru, Dokter, Wiraswasta"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
                     </div>
 
                     {/* NIK */}
@@ -758,35 +847,68 @@ const AnggotaMUPage = () => {
                       )}
                     </div>
 
-                    {/* Kelurahan */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                        Kelurahan <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <select
-                        name="village_id"
-                        value={formData.village_id}
-                        onChange={handleInputChange}
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: formErrors.village_id ? '1px solid #ef4444' : '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      >
-                        <option value="">Pilih Kelurahan</option>
-                        {villages.map(village => (
-                          <option key={village.id} value={village.id}>
-                            {village.name} ({village.code})
-                          </option>
-                        ))}
-                      </select>
-                      {formErrors.village_id && (
-                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                          {formErrors.village_id}
-                        </span>
-                      )}
+                    {/* Row: Kabupaten dan Kecamatan */}
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Kabupaten/Kota <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          value={selectedVillageForAdd}
+                          onChange={handleVillageChangeForAdd}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.village ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        >
+                          <option value="">Pilih Kabupaten/Kota</option>
+                          {villages.map(village => (
+                            <option key={village.id} value={village.id}>
+                              {village.name}
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.village && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.village}
+                          </span>
+                        )}
+                      </div>
+
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Kecamatan <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          name="sub_village_id"
+                          value={formData.sub_village_id}
+                          onChange={handleInputChange}
+                          disabled={!selectedVillageForAdd}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.sub_village_id ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            opacity: !selectedVillageForAdd ? 0.6 : 1
+                          }}
+                        >
+                          <option value="">Pilih Kecamatan</option>
+                          {filteredSubVillagesForAdd.map(subVillage => (
+                            <option key={subVillage.id} value={subVillage.id}>
+                              {subVillage.name}
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.sub_village_id && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.sub_village_id}
+                          </span>
+                        )}
+                      </div>
                     </div>
 
                     {/* Alamat */}
@@ -817,52 +939,23 @@ const AnggotaMUPage = () => {
                       )}
                     </div>
 
-                    {/* Row: Status Kartu dan Is Mobile */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                          Status Kartu
-                        </label>
-                        <select
-                          name="card_status"
-                          value={formData.card_status}
+                    {/* Akses Mobile */}
+                    <div>
+                      <label style={{ 
+                        display: 'flex', 
+                        alignItems: 'center', 
+                        gap: '8px',
+                        cursor: 'pointer'
+                      }}>
+                        <input
+                          type="checkbox"
+                          name="is_mobile"
+                          checked={formData.is_mobile}
                           onChange={handleInputChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <option value="pending">Pending</option>
-                          <option value="approved">Disetujui</option>
-                          <option value="printed">Dicetak</option>
-                          <option value="delivered">Terkirim</option>
-                        </select>
-                      </div>
-                      
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                          &nbsp;
-                        </label>
-                        <label style={{ 
-                          display: 'flex', 
-                          alignItems: 'center', 
-                          gap: '8px',
-                          padding: '10px 12px',
-                          cursor: 'pointer'
-                        }}>
-                          <input
-                            type="checkbox"
-                            name="is_mobile"
-                            checked={formData.is_mobile}
-                            onChange={handleInputChange}
-                            style={{ cursor: 'pointer' }}
-                          />
-                          <span>Akses Mobile App</span>
-                        </label>
-                      </div>
+                          style={{ cursor: 'pointer' }}
+                        />
+                        <span>Berikan akses Mobile App</span>
+                      </label>
                     </div>
 
                   </div>
@@ -897,11 +990,13 @@ const AnggotaMUPage = () => {
             </div>
           </div>
         )}
+
         <UserEditModal
           isOpen={showEditModal}
           onClose={handleCloseEditModal}
           user={editingUser}
           villages={villages}
+          subVillages={subVillages}
           onSuccess={handleUpdateUser}
         />
         <UserDetailModal

@@ -6,37 +6,73 @@ const UserEditModal = ({
   onClose, 
   user, 
   villages,
+  subVillages,
   onSuccess 
 }) => {
   const [formData, setFormData] = useState({
     name: '',
+    birth_date: '',
     telp: '',
+    gender: 'male',
+    job: '',
     role_id: 3,
-    village_id: '',
+    sub_village_id: '',
     nik: '',
-    address: '',
-    card_status: 'pending'
+    address: ''
   });
   
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [filteredSubVillages, setFilteredSubVillages] = useState([]);
+  const [selectedVillageId, setSelectedVillageId] = useState('');
 
   // Populate form when user data is loaded
   useEffect(() => {
     if (user) {
+      const birthDate = user.birth_date ? new Date(user.birth_date).toISOString().split('T')[0] : '';
+      
       setFormData({
         name: user.name || '',
+        birth_date: birthDate,
         telp: user.telp || '',
+        gender: user.gender || 'male',
+        job: user.job || '',
         role_id: user.role_id || 3,
-        village_id: user.village_id || '',
+        sub_village_id: user.sub_village_id || '',
         nik: user.nik || '',
-        address: user.address || '',
-        card_status: user.card_status || 'pending'
+        address: user.address || ''
       });
+
+      // Set village dari sub_village
+      if (user.sub_village && user.sub_village.village_id) {
+        setSelectedVillageId(user.sub_village.village_id);
+        filterSubVillagesByVillage(user.sub_village.village_id);
+      }
     }
-  }, [user]);
+  }, [user, subVillages]);
+
+  const filterSubVillagesByVillage = (villageId) => {
+    if (!villageId || !subVillages) {
+      setFilteredSubVillages([]);
+      return;
+    }
+    const filtered = subVillages.filter(sv => sv.village_id === parseInt(villageId));
+    setFilteredSubVillages(filtered);
+  };
 
   if (!isOpen) return null;
+
+  const handleVillageChange = (e) => {
+    const villageId = e.target.value;
+    setSelectedVillageId(villageId);
+    filterSubVillagesByVillage(villageId);
+    
+    // Reset sub_village selection
+    setFormData(prev => ({
+      ...prev,
+      sub_village_id: ''
+    }));
+  };
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -57,14 +93,26 @@ const UserEditModal = ({
       errors.name = 'Nama wajib diisi';
     }
     
+    if (!formData.birth_date) {
+      errors.birth_date = 'Tanggal lahir wajib diisi';
+    }
+    
     if (!formData.telp.trim()) {
       errors.telp = 'Nomor telepon wajib diisi';
     } else if (!/^08\d{8,12}$/.test(formData.telp)) {
       errors.telp = 'Format nomor telepon tidak valid (contoh: 081234567890)';
     }
     
-    if (!formData.village_id) {
-      errors.village_id = 'Kelurahan wajib dipilih';
+    if (!formData.gender) {
+      errors.gender = 'Jenis kelamin wajib dipilih';
+    }
+    
+    if (!selectedVillageId) {
+      errors.village = 'Kabupaten/Kota wajib dipilih';
+    }
+    
+    if (!formData.sub_village_id) {
+      errors.sub_village_id = 'Kecamatan wajib dipilih';
     }
     
     if (!formData.nik.trim()) {
@@ -94,12 +142,14 @@ const UserEditModal = ({
       // Prepare payload - convert to integers
       const payload = {
         name: formData.name.trim(),
+        birth_date: formData.birth_date,
         telp: formData.telp.trim(),
+        gender: formData.gender,
+        job: formData.job.trim() || null,
         role_id: parseInt(formData.role_id),
-        village_id: parseInt(formData.village_id),
+        sub_village_id: parseInt(formData.sub_village_id),
         nik: formData.nik.trim(),
-        address: formData.address.trim(),
-        card_status: formData.card_status
+        address: formData.address.trim()
       };
       
       console.log('Update payload:', payload);
@@ -114,13 +164,6 @@ const UserEditModal = ({
       setIsSubmitting(false);
     }
   };
-
-  const cardStatusOptions = [
-    { value: 'pending', label: 'Pending' },
-    { value: 'approved', label: 'Disetujui' },
-    { value: 'printed', label: 'Dicetak' },
-    { value: 'delivered', label: 'Terkirim' }
-  ];
 
   return (
     <>
@@ -145,7 +188,7 @@ const UserEditModal = ({
           style={{
             backgroundColor: 'white',
             borderRadius: '12px',
-            maxWidth: '600px',
+            maxWidth: '700px',
             width: '100%',
             maxHeight: '90vh',
             overflow: 'auto',
@@ -244,6 +287,89 @@ const UserEditModal = ({
                   )}
                 </div>
 
+                {/* Row: Jenis Kelamin dan Tanggal Lahir */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '6px', 
+                      fontWeight: '500',
+                      color: '#374151',
+                      fontSize: '0.875rem'
+                    }}>
+                      Jenis Kelamin <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select
+                      name="gender"
+                      value={formData.gender}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: formErrors.gender ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        backgroundColor: 'white',
+                        cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                      }}
+                    >
+                      <option value="male">Laki-laki</option>
+                      <option value="female">Perempuan</option>
+                    </select>
+                    {formErrors.gender && (
+                      <span style={{ 
+                        color: '#ef4444', 
+                        fontSize: '12px', 
+                        marginTop: '4px', 
+                        display: 'block' 
+                      }}>
+                        {formErrors.gender}
+                      </span>
+                    )}
+                  </div>
+
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '6px', 
+                      fontWeight: '500',
+                      color: '#374151',
+                      fontSize: '0.875rem'
+                    }}>
+                      Tanggal Lahir <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <input
+                      type="date"
+                      name="birth_date"
+                      value={formData.birth_date}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: formErrors.birth_date ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        transition: 'border-color 0.2s',
+                        outline: 'none'
+                      }}
+                      onFocus={(e) => !formErrors.birth_date && (e.target.style.borderColor = '#3b82f6')}
+                      onBlur={(e) => !formErrors.birth_date && (e.target.style.borderColor = '#d1d5db')}
+                    />
+                    {formErrors.birth_date && (
+                      <span style={{ 
+                        color: '#ef4444', 
+                        fontSize: '12px', 
+                        marginTop: '4px', 
+                        display: 'block' 
+                      }}>
+                        {formErrors.birth_date}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
                 {/* Row: Telepon dan Role */}
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
                   <div>
@@ -313,10 +439,42 @@ const UserEditModal = ({
                       }}
                     >
                       <option value="1">Admin</option>
-                      <option value="2">Koordinator</option>
+                      <option value="2">Operator</option>
                       <option value="3">Member</option>
                     </select>
                   </div>
+                </div>
+
+                {/* Pekerjaan */}
+                <div>
+                  <label style={{ 
+                    display: 'block', 
+                    marginBottom: '6px', 
+                    fontWeight: '500',
+                    color: '#374151',
+                    fontSize: '0.875rem'
+                  }}>
+                    Pekerjaan
+                  </label>
+                  <input
+                    type="text"
+                    name="job"
+                    value={formData.job}
+                    onChange={handleInputChange}
+                    placeholder="Contoh: Guru, Dokter, Wiraswasta"
+                    disabled={isSubmitting}
+                    style={{
+                      width: '100%',
+                      padding: '10px 12px',
+                      border: '1px solid #d1d5db',
+                      borderRadius: '6px',
+                      fontSize: '14px',
+                      transition: 'border-color 0.2s',
+                      outline: 'none'
+                    }}
+                    onFocus={(e) => e.target.style.borderColor = '#3b82f6'}
+                    onBlur={(e) => e.target.style.borderColor = '#d1d5db'}
+                  />
                 </div>
 
                 {/* NIK */}
@@ -363,7 +521,7 @@ const UserEditModal = ({
                   )}
                 </div>
 
-                {/* Row: Kelurahan dan Status Kartu */}
+                {/* Row: Kabupaten dan Kecamatan */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                   <div>
                     <label style={{ 
@@ -373,38 +531,37 @@ const UserEditModal = ({
                       color: '#374151',
                       fontSize: '0.875rem'
                     }}>
-                      Kelurahan <span style={{ color: '#ef4444' }}>*</span>
+                      Kabupaten/Kota <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
-                      name="village_id"
-                      value={formData.village_id}
-                      onChange={handleInputChange}
+                      value={selectedVillageId}
+                      onChange={handleVillageChange}
                       disabled={isSubmitting}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
-                        border: formErrors.village_id ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        border: formErrors.village ? '2px solid #ef4444' : '1px solid #d1d5db',
                         borderRadius: '6px',
                         fontSize: '14px',
                         backgroundColor: 'white',
                         cursor: isSubmitting ? 'not-allowed' : 'pointer'
                       }}
                     >
-                      <option value="">Pilih Kelurahan</option>
-                      {villages.map(village => (
+                      <option value="">Pilih Kabupaten/Kota</option>
+                      {villages && villages.map(village => (
                         <option key={village.id} value={village.id}>
                           {village.name}
                         </option>
                       ))}
                     </select>
-                    {formErrors.village_id && (
+                    {formErrors.village && (
                       <span style={{ 
                         color: '#ef4444', 
                         fontSize: '12px', 
                         marginTop: '4px', 
                         display: 'block' 
                       }}>
-                        {formErrors.village_id}
+                        {formErrors.village}
                       </span>
                     )}
                   </div>
@@ -417,29 +574,41 @@ const UserEditModal = ({
                       color: '#374151',
                       fontSize: '0.875rem'
                     }}>
-                      Status Kartu
+                      Kecamatan <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
-                      name="card_status"
-                      value={formData.card_status}
+                      name="sub_village_id"
+                      value={formData.sub_village_id}
                       onChange={handleInputChange}
-                      disabled={isSubmitting}
+                      disabled={isSubmitting || !selectedVillageId}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
-                        border: '1px solid #d1d5db',
+                        border: formErrors.sub_village_id ? '2px solid #ef4444' : '1px solid #d1d5db',
                         borderRadius: '6px',
                         fontSize: '14px',
                         backgroundColor: 'white',
-                        cursor: isSubmitting ? 'not-allowed' : 'pointer'
+                        cursor: (isSubmitting || !selectedVillageId) ? 'not-allowed' : 'pointer',
+                        opacity: !selectedVillageId ? 0.6 : 1
                       }}
                     >
-                      {cardStatusOptions.map(status => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
+                      <option value="">Pilih Kecamatan</option>
+                      {filteredSubVillages.map(subVillage => (
+                        <option key={subVillage.id} value={subVillage.id}>
+                          {subVillage.name}
                         </option>
                       ))}
                     </select>
+                    {formErrors.sub_village_id && (
+                      <span style={{ 
+                        color: '#ef4444', 
+                        fontSize: '12px', 
+                        marginTop: '4px', 
+                        display: 'block' 
+                      }}>
+                        {formErrors.sub_village_id}
+                      </span>
+                    )}
                   </div>
                 </div>
 

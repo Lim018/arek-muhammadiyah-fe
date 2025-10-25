@@ -23,12 +23,12 @@ const DashboardPage = () => {
       closed: 0,
       total: 0
     },
-    card_status_stats: {
-      pending: 0,
-      approved: 0,
-      printed: 0,
-      delivered: 0
-    }
+    // card_status_stats: {
+    //   pending: 0,
+    //   approved: 0,
+    //   printed: 0,
+    //   delivered: 0
+    // }
   });
   const [villagesData, setVillagesData] = useState([]);
   const [hoverInfo, setHoverInfo] = useState({
@@ -238,7 +238,7 @@ const DashboardPage = () => {
                   </>
                 ) : (
                   <>
-                    <div className="stat-number">{dashboardStats.card_status_stats.delivered}</div>
+                   
                     <div className="stat-description">Kartu Terkirim</div>
                   </>
                 )}

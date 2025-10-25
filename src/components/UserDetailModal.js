@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, User, Phone, CreditCard, Home, MapPin, Briefcase, Calendar, CheckCircle, Smartphone } from 'lucide-react';
+import { X, User, Phone, CreditCard, Home, MapPin, Briefcase, Calendar, Users, Cake } from 'lucide-react';
 
 const UserDetailModal = ({ 
   isOpen, 
@@ -15,42 +15,38 @@ const UserDetailModal = ({
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'long',
+      year: 'numeric'
+    });
+  };
+
+  const formatDateTime = (dateString) => {
+    if (!dateString) return '-';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'long',
       year: 'numeric',
       hour: '2-digit',
       minute: '2-digit'
     });
   };
 
-  const getCardStatusBadge = (status) => {
-    const statusConfig = {
-      delivered: { label: 'Terkirim', color: '#10b981', bg: '#d1fae5' },
-      pending: { label: 'Pending', color: '#f59e0b', bg: '#fef3c7' },
-      approved: { label: 'Disetujui', color: '#3b82f6', bg: '#dbeafe' },
-      printed: { label: 'Dicetak', color: '#8b5cf6', bg: '#ede9fe' },
-      processing: { label: 'Diproses', color: '#3b82f6', bg: '#dbeafe' },
-      cancelled: { label: 'Dibatalkan', color: '#ef4444', bg: '#fee2e2' }
-    };
-    
-    const config = statusConfig[status] || statusConfig.pending;
-    
-    return (
-      <span style={{
-        padding: '4px 12px',
-        borderRadius: '12px',
-        fontSize: '0.875rem',
-        fontWeight: '500',
-        color: config.color,
-        backgroundColor: config.bg
-      }}>
-        {config.label}
-      </span>
-    );
+  const calculateAge = (birthDate) => {
+    if (!birthDate) return '-';
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
   };
 
   const getRoleBadge = (roleName) => {
     const roleConfig = {
       admin: { label: 'Admin', color: '#dc2626', bg: '#fee2e2' },
-      coordinator: { label: 'Koordinator', color: '#7c3aed', bg: '#ede9fe' },
+      operator: { label: 'Operator', color: '#7c3aed', bg: '#ede9fe' },
       member: { label: 'Anggota', color: '#059669', bg: '#d1fae5' }
     };
     
@@ -69,6 +65,11 @@ const UserDetailModal = ({
         {config.label}
       </span>
     );
+  };
+
+  const getGenderLabel = (gender) => {
+    if (!gender) return '-';
+    return gender === 'male' ? 'Laki-laki' : 'Perempuan';
   };
 
   return (
@@ -92,7 +93,7 @@ const UserDetailModal = ({
         <div style={{
           backgroundColor: 'white',
           borderRadius: '12px',
-          maxWidth: '600px',
+          maxWidth: '700px',
           width: '100%',
           maxHeight: '90vh',
           overflow: 'auto',
@@ -125,7 +126,7 @@ const UserDetailModal = ({
               gap: '10px'
             }}>
               <User size={24} style={{ color: '#3b82f6' }} />
-              Detail Pengguna
+              Detail Anggota
             </h2>
             <button
               onClick={onClose}
@@ -180,7 +181,7 @@ const UserDetailModal = ({
                       width: '60px',
                       height: '60px',
                       borderRadius: '50%',
-                      backgroundColor: '#3b82f6',
+                      backgroundColor: user.gender === 'female' ? '#ec4899' : '#3b82f6',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -207,22 +208,21 @@ const UserDetailModal = ({
                         flexWrap: 'wrap'
                       }}>
                         {user.is_mobile && (
-                          <div style={{
-                            display: 'flex',
+                          <span style={{
+                            padding: '3px 10px',
+                            borderRadius: '12px',
+                            fontSize: '0.75rem',
+                            fontWeight: '500',
+                            color: '#059669',
+                            backgroundColor: '#d1fae5',
+                            display: 'inline-flex',
                             alignItems: 'center',
                             gap: '4px'
                           }}>
-                            <Smartphone size={16} style={{ color: '#10b981' }} />
-                            <span style={{ fontSize: '0.875rem', color: '#059669', fontWeight: '500' }}>
-                              Mobile App
-                            </span>
-                          </div>
+                            📱 Mobile App
+                          </span>
                         )}
-                        {user.role && (
-                          <div>
-                            {getRoleBadge(user.role.name)}
-                          </div>
-                        )}
+                        {user.role && getRoleBadge(user.role.name)}
                       </div>
                     </div>
                   </div>
@@ -233,6 +233,66 @@ const UserDetailModal = ({
                   display: 'grid',
                   gap: '16px'
                 }}>
+                  {/* Personal Info Grid */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '12px'
+                  }}>
+                    {/* Jenis Kelamin */}
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '6px'
+                      }}>
+                        <Users size={16} style={{ color: '#6b7280' }} />
+                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                          Jenis Kelamin
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: '500', color: '#111827' }}>
+                        {getGenderLabel(user.gender)}
+                      </div>
+                    </div>
+
+                    {/* Tanggal Lahir */}
+                    <div style={{
+                      padding: '12px',
+                      backgroundColor: '#f9fafb',
+                      borderRadius: '8px'
+                    }}>
+                      <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        marginBottom: '6px'
+                      }}>
+                        <Cake size={16} style={{ color: '#6b7280' }} />
+                        <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+                          Tanggal Lahir
+                        </span>
+                      </div>
+                      <div style={{ fontWeight: '500', color: '#111827' }}>
+                        {formatDate(user.birth_date)}
+                        {user.birth_date && (
+                          <span style={{ 
+                            marginLeft: '8px', 
+                            fontSize: '0.875rem', 
+                            color: '#6b7280' 
+                          }}>
+                            ({calculateAge(user.birth_date)} tahun)
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
                   {/* Phone */}
                   <div style={{
                     display: 'flex',
@@ -249,6 +309,26 @@ const UserDetailModal = ({
                       </div>
                       <div style={{ fontWeight: '500', color: '#111827' }}>
                         {user.telp || '-'}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Pekerjaan */}
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'flex-start',
+                    gap: '12px',
+                    padding: '12px',
+                    backgroundColor: '#f9fafb',
+                    borderRadius: '8px'
+                  }}>
+                    <Briefcase size={20} style={{ color: '#3b82f6', marginTop: '2px', flexShrink: 0 }} />
+                    <div style={{ flex: 1 }}>
+                      <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '4px' }}>
+                        Pekerjaan
+                      </div>
+                      <div style={{ fontWeight: '500', color: '#111827' }}>
+                        {user.job || '-'}
                       </div>
                     </div>
                   </div>
@@ -298,8 +378,8 @@ const UserDetailModal = ({
                     </div>
                   </div>
 
-                  {/* Village */}
-                  {user.village && (
+                  {/* Location Info */}
+                  {user.sub_village && (
                     <div style={{
                       padding: '16px',
                       border: '2px solid #e5e7eb',
@@ -313,61 +393,64 @@ const UserDetailModal = ({
                       }}>
                         <MapPin size={20} style={{ color: '#3b82f6' }} />
                         <span style={{ fontWeight: '600', color: '#111827' }}>
-                          Informasi Kelurahan
+                          Informasi Wilayah
                         </span>
                       </div>
-                      <div style={{ display: 'grid', gap: '8px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Nama:</span>
-                          <span style={{ fontWeight: '500', color: '#111827' }}>
-                            {user.village.name}
-                          </span>
-                        </div>
-                        {user.village.code && (
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>Kode:</span>
-                            <code style={{
-                              fontWeight: '500',
-                              color: '#111827',
-                              backgroundColor: '#f3f4f6',
-                              padding: '2px 8px',
-                              borderRadius: '4px',
-                              fontSize: '0.875rem'
-                            }}>
-                              {user.village.code}
-                            </code>
+                      <div style={{ display: 'grid', gap: '10px' }}>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>
+                            Kabupaten/Kota
                           </div>
-                        )}
-                        {user.village.description && (
+                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
+                            {user.sub_village.village?.name || '-'}
+                            {user.sub_village.village?.code && (
+                              <code style={{
+                                marginLeft: '8px',
+                                fontSize: '0.75rem',
+                                backgroundColor: '#f3f4f6',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontWeight: 'normal'
+                              }}>
+                                {user.sub_village.village.code}
+                              </code>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>
+                            Kecamatan
+                          </div>
+                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
+                            {user.sub_village.name}
+                            {user.sub_village.code && (
+                              <code style={{
+                                marginLeft: '8px',
+                                fontSize: '0.75rem',
+                                backgroundColor: '#f3f4f6',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontWeight: 'normal'
+                              }}>
+                                {user.sub_village.code}
+                              </code>
+                            )}
+                          </div>
+                        </div>
+                        {user.sub_village.description && (
                           <div style={{ 
                             marginTop: '4px',
                             paddingTop: '8px',
                             borderTop: '1px solid #e5e7eb'
                           }}>
                             <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                              {user.village.description}
+                              {user.sub_village.description}
                             </span>
                           </div>
                         )}
                       </div>
                     </div>
                   )}
-
-                  {/* Card Status */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '12px',
-                    backgroundColor: '#f9fafb',
-                    borderRadius: '8px'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <CreditCard size={20} style={{ color: '#3b82f6' }} />
-                      <span style={{ fontWeight: '500', color: '#111827' }}>Status Kartu:</span>
-                    </div>
-                    {getCardStatusBadge(user.card_status)}
-                  </div>
 
                   {/* Timestamps */}
                   <div style={{
@@ -393,7 +476,7 @@ const UserDetailModal = ({
                         </span>
                       </div>
                       <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>
-                        {formatDate(user.created_at)}
+                        {formatDateTime(user.created_at)}
                       </div>
                     </div>
                     <div style={{
@@ -413,7 +496,7 @@ const UserDetailModal = ({
                         </span>
                       </div>
                       <div style={{ fontSize: '0.875rem', fontWeight: '500', color: '#111827' }}>
-                        {formatDate(user.updated_at)}
+                        {formatDateTime(user.updated_at)}
                       </div>
                     </div>
                   </div>
