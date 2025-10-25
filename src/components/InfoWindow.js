@@ -1,6 +1,6 @@
 import React from 'react';
 
-const InfoWindow = ({ province, data, position, visible }) => {
+const InfoWindow = ({ title, data, position, visible }) => {
   if (!visible) return null;
 
   return (
@@ -10,23 +10,28 @@ const InfoWindow = ({ province, data, position, visible }) => {
         position: 'absolute',
         left: position?.x || 0,
         top: position?.y || 0,
-        zIndex: 1000
+        zIndex: 1000,
+        background: 'white',
+        border: '2px solid #e5e7eb',
+        borderRadius: '8px',
+        padding: '12px',
+        boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+        minWidth: '200px',
+        pointerEvents: 'none'
       }}
     >
       <div className="info-content">
-        <h4>{province}</h4>
-        <div className="info-stats">
-          <div className="stat-item">
-            <span className="stat-label">Anggota:</span>
-            <span className="stat-value">{data.members?.toLocaleString()}</span>
+        <h4 style={{ margin: '0 0 8px 0', fontSize: '1em', fontWeight: '600' }}>
+          {title}
+        </h4>
+        <div className="info-stats" style={{ fontSize: '0.9em' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <span style={{ color: '#6b7280' }}>Anggota:</span>
+            <strong>{data.members?.toLocaleString() || 0}</strong>
           </div>
-          <div className="stat-item">
-            <span className="stat-label">Tiket:</span>
-            <span className="stat-value">{data.tickets}</span>
-          </div>
-          <div className="stat-item">
-            <span className="stat-label">Artikel:</span>
-            <span className="stat-value">{data.articles}</span>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
+            <span style={{ color: '#6b7280' }}>Tiket:</span>
+            <strong>{data.tickets || 0}</strong>
           </div>
         </div>
       </div>

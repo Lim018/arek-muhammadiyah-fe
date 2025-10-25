@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import Layout from '../components/Layout';
 import GeoJSONMap from '../components/GeoJSONMap';
 import LoadingSkeleton from '../components/LoadingSkeleton';
+import InfoWindow from '../components/InfoWindow'; // Pastikan path ini sesuai
 import { api } from '../services/api';
 import './DashboardPage.css';
 
@@ -135,10 +136,11 @@ const DashboardPage = () => {
           </p>
         </div>
 
-        {/* Main Stats Cards - Combined */}
+        {/* Main Stats Cards */}
         <div className="stats-section">
           <div className="stats-row">
-            <div className="stat-card blue">
+            {/* ... card statistik tetap sama ... */}
+             <div className="stat-card blue">
               <div className="stat-icon">👥</div>
               <div className="stat-content">
                 {statsLoading ? (
@@ -241,45 +243,13 @@ const DashboardPage = () => {
                   </div>
                 )}
                 
-                {hoverInfo.visible && (
-                  <div
-                    style={{
-                      position: 'absolute',
-                      left: `${hoverInfo.position.x}px`,
-                      top: `${hoverInfo.position.y}px`,
-                      background: 'white',
-                      border: '2px solid #e5e7eb',
-                      borderRadius: '8px',
-                      padding: '12px',
-                      boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                      minWidth: '200px',
-                      zIndex: 1000,
-                      pointerEvents: 'none'
-                    }}
-                  >
-                    <h4 style={{ margin: '0 0 8px 0', fontSize: '1em', fontWeight: '600' }}>
-                      {hoverInfo.village}
-                    </h4>
-                    <div style={{ fontSize: '0.9em' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ color: '#6b7280' }}>Anggota:</span>
-                        <strong>{hoverInfo.data.members || 0}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ color: '#6b7280' }}>Tiket:</span>
-                        <strong>{hoverInfo.data.tickets || 0}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', borderBottom: '1px solid #f3f4f6' }}>
-                        <span style={{ color: '#6b7280' }}>Artikel:</span>
-                        <strong>{hoverInfo.data.articles || 0}</strong>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0' }}>
-                        <span style={{ color: '#6b7280' }}>Pengguna App:</span>
-                        <strong>{hoverInfo.data.appUsers || 0}</strong>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                {/* Gunakan InfoWindow untuk hover */}
+                <InfoWindow 
+                  visible={hoverInfo.visible}
+                  title={hoverInfo.village}
+                  data={hoverInfo.data}
+                  position={hoverInfo.position}
+                />
               </div>
             </div>
           </div>
@@ -297,14 +267,6 @@ const DashboardPage = () => {
                     <div className="stat-item">
                       <span className="stat-label">Tiket</span>
                       <span className="stat-value">{selectedVillage.data.tickets || '0'}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Artikel</span>
-                      <span className="stat-value">{selectedVillage.data.articles || '0'}</span>
-                    </div>
-                    <div className="stat-item">
-                      <span className="stat-label">Pengguna App</span>
-                      <span className="stat-value">{selectedVillage.data.appUsers || '0'}</span>
                     </div>
                   </div>
                 </div>
