@@ -23,12 +23,6 @@ const DashboardPage = () => {
       closed: 0,
       total: 0
     },
-    // card_status_stats: {
-    //   pending: 0,
-    //   approved: 0,
-    //   printed: 0,
-    //   delivered: 0
-    // }
   });
   const [villagesData, setVillagesData] = useState([]);
   const [hoverInfo, setHoverInfo] = useState({
@@ -141,9 +135,25 @@ const DashboardPage = () => {
           </p>
         </div>
 
-        {/* Main Stats Cards - Ticket Status */}
+        {/* Main Stats Cards - Combined */}
         <div className="stats-section">
           <div className="stats-row">
+            <div className="stat-card blue">
+              <div className="stat-icon">👥</div>
+              <div className="stat-content">
+                {statsLoading ? (
+                  <>
+                    <div className="stat-number">Memuat...</div>
+                    <div className="stat-description">Total Anggota</div>
+                  </>
+                ) : (
+                  <>
+                    <div className="stat-number">{dashboardStats.total_users.toLocaleString()}</div>
+                    <div className="stat-description">Total Anggota Terdaftar</div>
+                  </>
+                )}
+              </div>
+            </div>
             <div className="stat-card red">
               <div className="stat-icon">🔴</div>
               <div className="stat-content">
@@ -209,77 +219,9 @@ const DashboardPage = () => {
               </div>
             </div>
           </div>
-          
-          {/* Secondary Stats */}
-          <div className="stats-row">
-            <div className="stat-card-small blue">
-              <div className="stat-icon">👥</div>
-              <div className="stat-content">
-                {statsLoading ? (
-                  <>
-                    <div className="stat-number">Memuat...</div>
-                    <div className="stat-description">Total Anggota</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="stat-number">{dashboardStats.total_users.toLocaleString()}</div>
-                    <div className="stat-description">Total Anggota Terdaftar</div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="stat-card-small green">
-              <div className="stat-icon">📱</div>
-              <div className="stat-content">
-                {statsLoading ? (
-                  <>
-                    <div className="stat-number">Memuat...</div>
-                    <div className="stat-description">Pengguna Mobile</div>
-                  </>
-                ) : (
-                  <>
-                   
-                    <div className="stat-description">Kartu Terkirim</div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="stat-card-small gray">
-              <div className="stat-icon">📄</div>
-              <div className="stat-content">
-                {statsLoading ? (
-                  <>
-                    <div className="stat-number">Memuat...</div>
-                    <div className="stat-description">Total Artikel</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="stat-number">{dashboardStats.total_articles}</div>
-                    <div className="stat-description">Artikel Terpublikasi</div>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="stat-card-small brown">
-              <div className="stat-icon">🏘️</div>
-              <div className="stat-content">
-                {statsLoading ? (
-                  <>
-                    <div className="stat-number">Memuat...</div>
-                    <div className="stat-description">Total Kelurahan</div>
-                  </>
-                ) : (
-                  <>
-                    <div className="stat-number">{dashboardStats.total_villages}</div>
-                    <div className="stat-description">Kelurahan Aktif</div>
-                  </>
-                )}
-              </div>
-            </div>
-          </div>
         </div>
 
-        {/* Map and Info Panel - Keep existing code */}
+        {/* Map and Info Panel */}
         <div className="dashboard-content">
           <div className="map-section" onMouseLeave={handleMouseLeave}>
             <div className="map-card">
@@ -342,7 +284,6 @@ const DashboardPage = () => {
             </div>
           </div>
           
-          {/* Info Panel - Keep existing structure but use real data */}
           <div className="info-panel">
             <div className="info-card">
               {selectedVillage ? (
@@ -376,8 +317,6 @@ const DashboardPage = () => {
                 </div>
               )}
             </div>
-            
-            {/* Rest of info cards with real data */}
           </div>
         </div>
       </div>
