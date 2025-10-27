@@ -11,7 +11,11 @@ const UserDetailModal = ({
 
   const formatDate = (dateString) => {
     if (!dateString) return '-';
-    const date = new Date(dateString);
+    // Gunakan tanggal sebagai objek Date
+    const date = new Date(dateString); 
+    // Format tanggal hanya jika date valid
+    if (isNaN(date.getTime())) return dateString; 
+    
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'long',
@@ -22,6 +26,7 @@ const UserDetailModal = ({
   const formatDateTime = (dateString) => {
     if (!dateString) return '-';
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return dateString; 
     return date.toLocaleDateString('id-ID', {
       day: '2-digit',
       month: 'long',
@@ -35,6 +40,9 @@ const UserDetailModal = ({
     if (!birthDate) return '-';
     const birth = new Date(birthDate);
     const today = new Date();
+    
+    if (isNaN(birth.getTime())) return '-';
+
     let age = today.getFullYear() - birth.getFullYear();
     const monthDiff = today.getMonth() - birth.getMonth();
     if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
@@ -50,7 +58,9 @@ const UserDetailModal = ({
       member: { label: 'Anggota', color: '#059669', bg: '#d1fae5' }
     };
     
-    const config = roleConfig[roleName?.toLowerCase()] || { label: roleName, color: '#6b7280', bg: '#f3f4f6' };
+    // Asumsi: properti role adalah objek, misalnya user.role.name
+    const roleDisplay = roleName?.toLowerCase() || 'member'; 
+    const config = roleConfig[roleDisplay] || { label: roleName, color: '#6b7280', bg: '#f3f4f6' };
     
     return (
       <span style={{
@@ -69,7 +79,7 @@ const UserDetailModal = ({
 
   const getGenderLabel = (gender) => {
     if (!gender) return '-';
-    return gender === 'male' ? 'Laki-laki' : 'Perempuan';
+    return gender?.toLowerCase() === 'male' ? 'Laki-laki' : 'Perempuan';
   };
 
   return (
@@ -181,7 +191,7 @@ const UserDetailModal = ({
                       width: '60px',
                       height: '60px',
                       borderRadius: '50%',
-                      backgroundColor: user.gender === 'female' ? '#ec4899' : '#3b82f6',
+                      backgroundColor: user.gender?.toLowerCase() === 'female' ? '#ec4899' : '#3b82f6',
                       display: 'flex',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -222,7 +232,8 @@ const UserDetailModal = ({
                             📱 Mobile App
                           </span>
                         )}
-                        {user.role && getRoleBadge(user.role.name)}
+                        {/* Mengakses role name, misal: user.role.name */}
+                        {user.role?.name && getRoleBadge(user.role.name)}
                       </div>
                     </div>
                   </div>
@@ -358,7 +369,7 @@ const UserDetailModal = ({
                     </div>
                   </div>
 
-                  {/* Address */}
+                  {/* Alamat (Rincian) */}
                   <div style={{
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -370,7 +381,7 @@ const UserDetailModal = ({
                     <Home size={20} style={{ color: '#3b82f6', marginTop: '2px', flexShrink: 0 }} />
                     <div style={{ flex: 1 }}>
                       <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '4px' }}>
-                        Alamat
+                        Alamat Lengkap
                       </div>
                       <div style={{ fontWeight: '500', color: '#111827', lineHeight: '1.5' }}>
                         {user.address || '-'}
@@ -378,8 +389,8 @@ const UserDetailModal = ({
                     </div>
                   </div>
 
-                  {/* Location Info */}
-                  {user.sub_village && (
+                  {/* Location Info (DISESUAIKAN) */}
+                  {(user.village_name || user.district_name || user.city_name) && (
                     <div style={{
                       padding: '16px',
                       border: '2px solid #e5e7eb',
@@ -397,13 +408,15 @@ const UserDetailModal = ({
                         </span>
                       </div>
                       <div style={{ display: 'grid', gap: '10px' }}>
+                        
+                        {/* Kelurahan/Desa */}
                         <div>
                           <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>
-                            Kabupaten/Kota
+                            Kelurahan/Desa
                           </div>
                           <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
-                            {user.sub_village.village?.name || '-'}
-                            {user.sub_village.village?.code && (
+                            {user.village_name || '-'}
+                            {user.village_id && (
                               <code style={{
                                 marginLeft: '8px',
                                 fontSize: '0.75rem',
@@ -412,18 +425,20 @@ const UserDetailModal = ({
                                 borderRadius: '4px',
                                 fontWeight: 'normal'
                               }}>
-                                {user.sub_village.village.code}
+                                {user.village_id}
                               </code>
                             )}
                           </div>
                         </div>
+
+                        {/* Kecamatan */}
                         <div>
                           <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>
                             Kecamatan
                           </div>
                           <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
-                            {user.sub_village.name}
-                            {user.sub_village.code && (
+                            {user.district_name || '-'}
+                            {user.district_id && (
                               <code style={{
                                 marginLeft: '8px',
                                 fontSize: '0.75rem',
@@ -432,22 +447,33 @@ const UserDetailModal = ({
                                 borderRadius: '4px',
                                 fontWeight: 'normal'
                               }}>
-                                {user.sub_village.code}
+                                {user.district_id}
                               </code>
                             )}
                           </div>
                         </div>
-                        {user.sub_village.description && (
-                          <div style={{ 
-                            marginTop: '4px',
-                            paddingTop: '8px',
-                            borderTop: '1px solid #e5e7eb'
-                          }}>
-                            <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
-                              {user.sub_village.description}
-                            </span>
+
+                        {/* Kabupaten/Kota */}
+                        <div>
+                          <div style={{ fontSize: '0.75rem', color: '#6b7280', marginBottom: '4px' }}>
+                            Kabupaten/Kota
                           </div>
-                        )}
+                          <div style={{ fontWeight: '600', color: '#111827', fontSize: '0.95rem' }}>
+                            {user.city_name || '-'}
+                            {user.city_id && (
+                              <code style={{
+                                marginLeft: '8px',
+                                fontSize: '0.75rem',
+                                backgroundColor: '#f3f4f6',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontWeight: 'normal'
+                              }}>
+                                {user.city_id}
+                              </code>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
                   )}

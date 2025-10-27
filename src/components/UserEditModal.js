@@ -5,8 +5,9 @@ const UserEditModal = ({
   isOpen, 
   onClose, 
   user, 
-  villages,
-  subVillages,
+  cities, // Diperbarui: Daftar Kabupaten/Kota
+  districts, // Diperbarui: Daftar Kecamatan
+  villages, // Diperbarui: Daftar Kelurahan/Desa
   onSuccess 
 }) => {
   const [formData, setFormData] = useState({
@@ -16,21 +17,75 @@ const UserEditModal = ({
     gender: 'male',
     job: '',
     role_id: 3,
-    sub_village_id: '',
+    village_id: '', // Diperbarui: ID Kelurahan/Desa (final location)
     nik: '',
     address: ''
   });
   
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [filteredSubVillages, setFilteredSubVillages] = useState([]);
-  const [selectedVillageId, setSelectedVillageId] = useState('');
+  
+  // State untuk dropdown berantai
+  const [filteredDistricts, setFilteredDistricts] = useState([]);
+  const [filteredVillages, setFilteredVillages] = useState([]);
+  const [selectedCityId, setSelectedCityId] = useState('');
+  const [selectedDistrictId, setSelectedDistrictId] = useState('');
+
+  // Helper untuk memfilter Districts berdasarkan City
+  const filterDistrictsByCity = (cityId, allDistricts = districts) => {
+    if (!cityId || !allDistricts) {
+      setFilteredDistricts([]);
+      return;
+    }
+    const filtered = allDistricts.filter(d => d.city_id === cityId);
+    setFilteredDistricts(filtered);
+  };
+  
+  // Helper untuk memfilter Villages berdasarkan District
+  const filterVillagesByDistrict = (districtId, allVillages = villages) => {
+    if (!districtId || !allVillages) {
+      setFilteredVillages([]);
+      return;
+    }
+    const filtered = allVillages.filter(v => v.district_id === districtId);
+    setFilteredVillages(filtered);
+  };
 
   // Populate form when user data is loaded
   useEffect(() => {
-    if (user) {
+    if (user && cities.length > 0 && districts.length > 0 && villages.length > 0) {
       const birthDate = user.birth_date ? new Date(user.birth_date).toISOString().split('T')[0] : '';
       
+      let districtId = '';
+      let cityId = '';
+      
+      // 1. Dapatkan parent IDs dari village_id pengguna
+      if (user.village_id) {
+          const userVillage = villages.find(v => v.id === user.village_id);
+          if (userVillage) {
+              districtId = userVillage.district_id;
+              
+              // 2. Dapatkan parent City ID dari District ID
+              const userDistrict = districts.find(d => d.id === districtId);
+              if (userDistrict) {
+                  cityId = userDistrict.city_id;
+              }
+          }
+      }
+      
+      // 3. Set initial state untuk dropdown
+      setSelectedCityId(cityId);
+      setSelectedDistrictId(districtId);
+      
+      // 4. Populate filtered dropdowns
+      if (cityId) {
+          filterDistrictsByCity(cityId, districts);
+      }
+      if (districtId) {
+          filterVillagesByDistrict(districtId, villages);
+      }
+
+      // 5. Populate form data
       setFormData({
         name: user.name || '',
         birth_date: birthDate,
@@ -38,40 +93,34 @@ const UserEditModal = ({
         gender: user.gender || 'male',
         job: user.job || '',
         role_id: user.role_id || 3,
-        sub_village_id: user.sub_village_id || '',
+        village_id: user.village_id || '',
         nik: user.nik || '',
         address: user.address || ''
       });
-
-      // Set village dari sub_village
-      if (user.sub_village && user.sub_village.village_id) {
-        setSelectedVillageId(user.sub_village.village_id);
-        filterSubVillagesByVillage(user.sub_village.village_id);
-      }
     }
-  }, [user, subVillages]);
-
-  const filterSubVillagesByVillage = (villageId) => {
-    if (!villageId || !subVillages) {
-      setFilteredSubVillages([]);
-      return;
-    }
-    const filtered = subVillages.filter(sv => sv.village_id === parseInt(villageId));
-    setFilteredSubVillages(filtered);
-  };
+  }, [user, cities, districts, villages]);
 
   if (!isOpen) return null;
-
-  const handleVillageChange = (e) => {
-    const villageId = e.target.value;
-    setSelectedVillageId(villageId);
-    filterSubVillagesByVillage(villageId);
+  
+  // Handlers untuk dropdown wilayah
+  const handleCityChange = (e) => {
+    const cityId = e.target.value;
+    setSelectedCityId(cityId);
+    setSelectedDistrictId(''); // Reset district
+    setFormData(prev => ({ ...prev, village_id: '' })); // Reset village
     
-    // Reset sub_village selection
-    setFormData(prev => ({
-      ...prev,
-      sub_village_id: ''
-    }));
+    filterDistrictsByCity(cityId);
+    setFilteredVillages([]); // Clear village list
+    setFormErrors(prev => ({ ...prev, city: '', district: '', village_id: '' }));
+  };
+
+  const handleDistrictChange = (e) => {
+    const districtId = e.target.value;
+    setSelectedDistrictId(districtId);
+    setFormData(prev => ({ ...prev, village_id: '' })); // Reset village
+    
+    filterVillagesByDistrict(districtId);
+    setFormErrors(prev => ({ ...prev, district: '', village_id: '' }));
   };
 
   const handleInputChange = (e) => {
@@ -97,27 +146,33 @@ const UserEditModal = ({
       errors.birth_date = 'Tanggal lahir wajib diisi';
     }
     
+    // Validasi telepon sesuai AnggotaMUPage.js
     if (!formData.telp.trim()) {
       errors.telp = 'Nomor telepon wajib diisi';
-    } else if (!/^08\d{8,12}$/.test(formData.telp)) {
-      errors.telp = 'Format nomor telepon tidak valid (contoh: 081234567890)';
+    } else if (!/^[0-9]{10,15}$/.test(formData.telp.trim())) {
+      errors.telp = 'No. telepon harus 10-15 digit angka';
     }
     
     if (!formData.gender) {
       errors.gender = 'Jenis kelamin wajib dipilih';
     }
     
-    if (!selectedVillageId) {
-      errors.village = 'Kabupaten/Kota wajib dipilih';
+    // Validasi Wilayah
+    if (!selectedCityId) {
+      errors.city = 'Kabupaten/Kota wajib dipilih';
     }
     
-    if (!formData.sub_village_id) {
-      errors.sub_village_id = 'Kecamatan wajib dipilih';
+    if (!selectedDistrictId) {
+      errors.district = 'Kecamatan wajib dipilih';
+    }
+    
+    if (!formData.village_id) {
+      errors.village_id = 'Kelurahan/Desa wajib dipilih';
     }
     
     if (!formData.nik.trim()) {
       errors.nik = 'NIK wajib diisi';
-    } else if (!/^\d{16}$/.test(formData.nik)) {
+    } else if (!/^\d{16}$/.test(formData.nik.trim())) {
       errors.nik = 'NIK harus 16 digit angka';
     }
     
@@ -139,15 +194,15 @@ const UserEditModal = ({
     setIsSubmitting(true);
     
     try {
-      // Prepare payload - convert to integers
+      const formattedBirthDate = formData.birth_date ? formData.birth_date + 'T00:00:00Z' : null;
       const payload = {
         name: formData.name.trim(),
-        birth_date: formData.birth_date,
+        birth_date: formattedBirthDate,
         telp: formData.telp.trim(),
         gender: formData.gender,
         job: formData.job.trim() || null,
         role_id: parseInt(formData.role_id),
-        sub_village_id: parseInt(formData.sub_village_id),
+        village_id: formData.village_id, // Ini adalah ID Kelurahan/Desa
         nik: formData.nik.trim(),
         address: formData.address.trim()
       };
@@ -217,7 +272,7 @@ const UserEditModal = ({
               fontWeight: '600',
               color: '#111827'
             }}>
-              Edit Anggota
+              Edit Anggota: {user?.name || ''}
             </h2>
             <button
               onClick={onClose}
@@ -521,8 +576,10 @@ const UserEditModal = ({
                   )}
                 </div>
 
-                {/* Row: Kabupaten dan Kecamatan */}
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                {/* Row: Kabupaten, Kecamatan, dan Kelurahan/Desa */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '12px' }}>
+                  
+                  {/* Kabupaten/Kota */}
                   <div>
                     <label style={{ 
                       display: 'block', 
@@ -534,13 +591,13 @@ const UserEditModal = ({
                       Kabupaten/Kota <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
-                      value={selectedVillageId}
-                      onChange={handleVillageChange}
+                      value={selectedCityId}
+                      onChange={handleCityChange}
                       disabled={isSubmitting}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
-                        border: formErrors.village ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        border: formErrors.city ? '2px solid #ef4444' : '1px solid #d1d5db',
                         borderRadius: '6px',
                         fontSize: '14px',
                         backgroundColor: 'white',
@@ -548,24 +605,25 @@ const UserEditModal = ({
                       }}
                     >
                       <option value="">Pilih Kabupaten/Kota</option>
-                      {villages && villages.map(village => (
-                        <option key={village.id} value={village.id}>
-                          {village.name}
+                      {cities && cities.map(city => (
+                        <option key={city.id} value={city.id}>
+                          {city.name}
                         </option>
                       ))}
                     </select>
-                    {formErrors.village && (
+                    {formErrors.city && (
                       <span style={{ 
                         color: '#ef4444', 
                         fontSize: '12px', 
                         marginTop: '4px', 
                         display: 'block' 
                       }}>
-                        {formErrors.village}
+                        {formErrors.city}
                       </span>
                     )}
                   </div>
 
+                  {/* Kecamatan */}
                   <div>
                     <label style={{ 
                       display: 'block', 
@@ -577,36 +635,81 @@ const UserEditModal = ({
                       Kecamatan <span style={{ color: '#ef4444' }}>*</span>
                     </label>
                     <select
-                      name="sub_village_id"
-                      value={formData.sub_village_id}
-                      onChange={handleInputChange}
-                      disabled={isSubmitting || !selectedVillageId}
+                      value={selectedDistrictId}
+                      onChange={handleDistrictChange}
+                      disabled={isSubmitting || !selectedCityId}
                       style={{
                         width: '100%',
                         padding: '10px 12px',
-                        border: formErrors.sub_village_id ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        border: formErrors.district ? '2px solid #ef4444' : '1px solid #d1d5db',
                         borderRadius: '6px',
                         fontSize: '14px',
                         backgroundColor: 'white',
-                        cursor: (isSubmitting || !selectedVillageId) ? 'not-allowed' : 'pointer',
-                        opacity: !selectedVillageId ? 0.6 : 1
+                        cursor: (isSubmitting || !selectedCityId) ? 'not-allowed' : 'pointer',
+                        opacity: !selectedCityId ? 0.6 : 1
                       }}
                     >
                       <option value="">Pilih Kecamatan</option>
-                      {filteredSubVillages.map(subVillage => (
-                        <option key={subVillage.id} value={subVillage.id}>
-                          {subVillage.name}
+                      {filteredDistricts.map(district => (
+                        <option key={district.id} value={district.id}>
+                          {district.name}
                         </option>
                       ))}
                     </select>
-                    {formErrors.sub_village_id && (
+                    {formErrors.district && (
                       <span style={{ 
                         color: '#ef4444', 
                         fontSize: '12px', 
                         marginTop: '4px', 
                         display: 'block' 
                       }}>
-                        {formErrors.sub_village_id}
+                        {formErrors.district}
+                      </span>
+                    )}
+                  </div>
+                  
+                  {/* Kelurahan/Desa */}
+                  <div>
+                    <label style={{ 
+                      display: 'block', 
+                      marginBottom: '6px', 
+                      fontWeight: '500',
+                      color: '#374151',
+                      fontSize: '0.875rem'
+                    }}>
+                      Kelurahan/Desa <span style={{ color: '#ef4444' }}>*</span>
+                    </label>
+                    <select
+                      name="village_id"
+                      value={formData.village_id}
+                      onChange={handleInputChange}
+                      disabled={isSubmitting || !selectedDistrictId}
+                      style={{
+                        width: '100%',
+                        padding: '10px 12px',
+                        border: formErrors.village_id ? '2px solid #ef4444' : '1px solid #d1d5db',
+                        borderRadius: '6px',
+                        fontSize: '14px',
+                        backgroundColor: 'white',
+                        cursor: (isSubmitting || !selectedDistrictId) ? 'not-allowed' : 'pointer',
+                        opacity: !selectedDistrictId ? 0.6 : 1
+                      }}
+                    >
+                      <option value="">Pilih Kelurahan/Desa</option>
+                      {filteredVillages.map(village => (
+                        <option key={village.id} value={village.id}>
+                          {village.name}
+                        </option>
+                      ))}
+                    </select>
+                    {formErrors.village_id && (
+                      <span style={{ 
+                        color: '#ef4444', 
+                        fontSize: '12px', 
+                        marginTop: '4px', 
+                        display: 'block' 
+                      }}>
+                        {formErrors.village_id}
                       </span>
                     )}
                   </div>

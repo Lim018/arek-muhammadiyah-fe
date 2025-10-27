@@ -238,5 +238,17 @@ export const api = {
     }
 
     return response.json();
+  },
+
+  getCities: () => request('/wilayah/cities'),
+
+  getDistricts: (cityId) => request(`/wilayah/cities/${cityId}/districts`),
+
+  getVillages: (cityId, districtId) => 
+    request(`/wilayah/cities/${cityId}/districts/${districtId}/villages`),
+
+  searchVillages: (query) => {
+    const queryString = new URLSearchParams({ q: query }).toString();
+    return request(`/wilayah/search?${queryString}`);
   }
 };

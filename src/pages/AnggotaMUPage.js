@@ -7,15 +7,21 @@ import '../styles/CommonPages.css';
 import { api } from '../services/api';
 import { exportMembersToCSV } from '../utils/exportUtils';
 
+// Note: Tambahkan endpoint berikut ke api.js:
+// getCities: () => request('/wilayah/cities'),
+// getDistricts: (cityId) => request(`/wilayah/cities/${cityId}/districts`),
+// getVillages: (cityId, districtId) => request(`/wilayah/cities/${cityId}/districts/${districtId}/villages`),
+
 const AnggotaMUPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVillage, setSelectedVillage] = useState('semua');
-  const [selectedSubVillage, setSelectedSubVillage] = useState('semua');
+  const [selectedCity, setSelectedCity] = useState('semua');
+  const [selectedDistrict, setSelectedDistrict] = useState('semua');
+  const [cities, setCities] = useState([]);
+  const [districts, setDistricts] = useState([]);
   const [villages, setVillages] = useState([]);
-  const [subVillages, setSubVillages] = useState([]);
-  const [filteredSubVillages, setFilteredSubVillages] = useState([]);
+  const [filteredDistricts, setFilteredDistricts] = useState([]);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [error, setError] = useState(null);
@@ -24,86 +30,137 @@ const AnggotaMUPage = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
+  
+  // Form state untuk add member
   const [formData, setFormData] = useState({
+    id: '',
     name: '',
-    password: '',
     birth_date: '',
     telp: '',
     gender: 'male',
     job: '',
-    role_id: 3,
-    sub_village_id: '',
+    job_other: '',
+    village_id: '',
     nik: '',
-    address: '',
-    is_mobile: false
+    address: ''
   });
+  
   const [formErrors, setFormErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [selectedVillageForAdd, setSelectedVillageForAdd] = useState('');
-  const [filteredSubVillagesForAdd, setFilteredSubVillagesForAdd] = useState([]);
+  
+  // State untuk dropdown wilayah di form add
+  const [selectedCityForAdd, setSelectedCityForAdd] = useState('');
+  const [selectedDistrictForAdd, setSelectedDistrictForAdd] = useState('');
+  const [filteredDistrictsForAdd, setFilteredDistrictsForAdd] = useState([]);
+  const [filteredVillagesForAdd, setFilteredVillagesForAdd] = useState([]);
+
+  // Job options
+  const jobOptions = [
+    { value: 'Belum / Tidak Bekerja', label: 'Belum / Tidak Bekerja' },
+    { value: 'Mengurus Rumah Tangga', label: 'Mengurus Rumah Tangga' },
+    { value: 'Pelajar / Mahasiswa', label: 'Pelajar / Mahasiswa' },
+    { value: 'Pensiunan', label: 'Pensiunan' },
+    { value: 'Pegawai Negeri Sipil (PNS) / ASN', label: 'Pegawai Negeri Sipil (PNS) / ASN' },
+    { value: 'TNI / POLRI', label: 'TNI / POLRI' },
+    { value: 'Karyawan Swasta', label: 'Karyawan Swasta' },
+    { value: 'Karyawan BUMN / BUMD', label: 'Karyawan BUMN / BUMD' },
+    { value: 'Wiraswasta', label: 'Wiraswasta' },
+    { value: 'Lainnya', label: 'Profesi Lainnya' }
+  ];
 
   useEffect(() => {
-    fetchVillages();
-    fetchSubVillages();
+    fetchWilayahData();
     fetchMembers();
   }, []);
 
   useEffect(() => {
-    filterSubVillagesByVillage(selectedVillage);
-  }, [selectedVillage, subVillages]);
+    filterDistrictsByCity(selectedCity);
+  }, [selectedCity, districts]);
 
-  const fetchVillages = async () => {
-    try {
-      const response = await api.getVillages({ active: true });
-      const villagesData = response.data || response;
+  // Fetch wilayah data dari backend
+const fetchWilayahData = async () => {
+  try {
+    const response = await api.getCities();
+    
+    // Perbaikan: Ambil data dari properti 'data' jika ada, atau gunakan respons itu sendiri
+    // Berdasarkan contoh Postman Anda, yang benar adalah response.data
+    const citiesData = response.data || response;
+    
+    // Jika format API Anda selalu { data: [...] }, maka gunakan ini:
+    // const citiesData = response.data;
+
+    // Pastikan citiesData adalah array sebelum memproses
+    if (Array.isArray(citiesData)) {
+      setCities(citiesData);
       
-      if (Array.isArray(villagesData)) {
-        setVillages(villagesData);
-      } else {
-        console.error('Format villages tidak sesuai:', villagesData);
-      }
-    } catch (error) {
-      console.error('Error fetching villages:', error);
-      setVillages([
-        { id: 1, name: 'Surabaya', code: 'KAB-SBY-001' },
-        { id: 2, name: 'Sidoarjo', code: 'KAB-SDA-002' },
-        { id: 3, name: 'Gresik', code: 'KAB-GRK-003' },
-      ]);
-    }
-  };
-
-  const fetchSubVillages = async () => {
-    try {
-      const response = await api.getSubVillages({ active: true });
-      const subVillagesData = response.data || response;
+      // Extract semua districts dan villages (Logika ini sudah benar)
+      const allDistricts = [];
+      const allVillages = [];
       
-      if (Array.isArray(subVillagesData)) {
-        setSubVillages(subVillagesData);
-      } else {
-        console.error('Format sub villages tidak sesuai:', subVillagesData);
-      }
-    } catch (error) {
-      console.error('Error fetching sub villages:', error);
+      citiesData.forEach(city => {
+        if (city.districts && Array.isArray(city.districts)) {
+          city.districts.forEach(district => {
+            allDistricts.push({
+              ...district,
+              city_id: city.id,
+              city_name: city.name
+            });
+            
+            if (district.villages && Array.isArray(district.villages)) {
+              district.villages.forEach(village => {
+                allVillages.push({
+                  ...village,
+                  district_id: district.id,
+                  district_name: district.name,
+                  city_id: city.id,
+                  city_name: city.name
+                });
+              });
+            }
+          });
+        }
+      });
+      
+      setDistricts(allDistricts);
+      setVillages(allVillages);
+    } else {
+        // Tambahkan error handling jika response.data tidak ada atau bukan array
+        console.error('Data wilayah tidak ditemukan di properti "data" atau bukan array.', response);
+        setError('Gagal memuat data wilayah: Format respons API tidak sesuai.');
     }
-  };
+  } catch (error) {
+    console.error('Error fetching wilayah data:', error);
+    setError('Gagal memuat data wilayah');
+  }
+};
 
-  const filterSubVillagesByVillage = (villageId) => {
-    if (villageId === 'semua') {
-      setFilteredSubVillages([]);
-      setSelectedSubVillage('semua');
+  const filterDistrictsByCity = (cityId) => {
+    if (cityId === 'semua') {
+      setFilteredDistricts([]);
+      setSelectedDistrict('semua');
       return;
     }
-    const filtered = subVillages.filter(sv => sv.village_id === parseInt(villageId));
-    setFilteredSubVillages(filtered);
+    const filtered = districts.filter(d => d.city_id === cityId);
+    setFilteredDistricts(filtered);
   };
 
-  const filterSubVillagesForAddForm = (villageId) => {
-    if (!villageId) {
-      setFilteredSubVillagesForAdd([]);
+  const filterDistrictsForAddForm = (cityId) => {
+    if (!cityId) {
+      setFilteredDistrictsForAdd([]);
+      setFilteredVillagesForAdd([]);
       return;
     }
-    const filtered = subVillages.filter(sv => sv.village_id === parseInt(villageId));
-    setFilteredSubVillagesForAdd(filtered);
+    const filtered = districts.filter(d => d.city_id === cityId);
+    setFilteredDistrictsForAdd(filtered);
+  };
+
+  const filterVillagesForAddForm = (districtId) => {
+    if (!districtId) {
+      setFilteredVillagesForAdd([]);
+      return;
+    }
+    const filtered = villages.filter(v => v.district_id === districtId);
+    setFilteredVillagesForAdd(filtered);
   };
 
   const fetchMembers = async () => {
@@ -113,7 +170,7 @@ const AnggotaMUPage = () => {
       
       const response = await api.getUsers({ 
         page: 1, 
-        limit: 100 
+        limit: 1000 
       });
       
       console.log('API Response:', response);
@@ -196,16 +253,16 @@ const AnggotaMUPage = () => {
     const matchesSearch = member.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          member.nik?.includes(searchTerm) ||
                          member.telp?.includes(searchTerm) ||
-                         member.sub_village?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         member.sub_village?.village?.name?.toLowerCase().includes(searchTerm.toLowerCase());
+                         member.village_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         member.city_name?.toLowerCase().includes(searchTerm.toLowerCase());
     
-    const matchesVillage = selectedVillage === 'semua' || 
-                          member.sub_village?.village_id === parseInt(selectedVillage);
+    const matchesCity = selectedCity === 'semua' || 
+                       member.city_id === selectedCity;
     
-    const matchesSubVillage = selectedSubVillage === 'semua' || 
-                             member.sub_village_id === parseInt(selectedSubVillage);
+    const matchesDistrict = selectedDistrict === 'semua' || 
+                           member.district_id === selectedDistrict;
     
-    return matchesSearch && matchesVillage && matchesSubVillage;
+    return matchesSearch && matchesCity && matchesDistrict;
   });
 
   const calculateAge = (birthDate) => {
@@ -236,25 +293,95 @@ const AnggotaMUPage = () => {
   };
 
   const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target;
+    const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: value
     }));
+    
+    // Clear error untuk field yang diubah
     if (formErrors[name]) {
       setFormErrors(prev => ({ ...prev, [name]: '' }));
     }
   };
 
-  const handleVillageChangeForAdd = (e) => {
-    const villageId = e.target.value;
-    setSelectedVillageForAdd(villageId);
-    filterSubVillagesForAddForm(villageId);
-    setFormData(prev => ({ ...prev, sub_village_id: '' }));
+  const handleCityChangeForAdd = (e) => {
+    const cityId = e.target.value;
+    setSelectedCityForAdd(cityId);
+    filterDistrictsForAddForm(cityId);
+    setSelectedDistrictForAdd('');
+    setFormData(prev => ({ 
+      ...prev, 
+      village_id: '' 
+    }));
+    setFilteredVillagesForAdd([]);
+  };
+
+  const handleDistrictChangeForAdd = (e) => {
+    const districtId = e.target.value;
+    setSelectedDistrictForAdd(districtId);
+    filterVillagesForAddForm(districtId);
+    setFormData(prev => ({ 
+      ...prev, 
+      village_id: '' 
+    }));
+  };
+
+  const handleJobChange = (e) => {
+    const job = e.target.value;
+    setFormData(prev => ({
+      ...prev,
+      job: job,
+      job_other: job === 'Lainnya' ? prev.job_other : ''
+    }));
   };
 
   const validateForm = () => {
     const errors = {};
+    
+    if (!formData.id.trim()) {
+      errors.id = 'ID/Username wajib diisi';
+    }
+    
+    if (!formData.name.trim()) {
+      errors.name = 'Nama lengkap wajib diisi';
+    }
+    
+    if (!formData.birth_date) {
+      errors.birth_date = 'Tanggal lahir wajib diisi';
+    }
+    
+    if (!formData.telp.trim()) {
+      errors.telp = 'No. telepon wajib diisi';
+    } else if (!/^[0-9]{10,15}$/.test(formData.telp.trim())) {
+      errors.telp = 'No. telepon harus 10-15 digit angka';
+    }
+    
+    if (!formData.job) {
+      errors.job = 'Pekerjaan wajib dipilih';
+    }
+    
+    if (formData.job === 'Lainnya' && !formData.job_other.trim()) {
+      errors.job_other = 'Harap sebutkan profesi lainnya';
+    }
+    
+    if (!selectedCityForAdd) {
+      errors.city = 'Kabupaten/Kota wajib dipilih';
+    }
+    
+    if (!selectedDistrictForAdd) {
+      errors.district = 'Kecamatan wajib dipilih';
+    }
+    
+    if (!formData.village_id) {
+      errors.village_id = 'Kelurahan/Desa wajib dipilih';
+    }
+    
+    if (!formData.nik.trim()) {
+      errors.nik = 'NIK wajib diisi';
+    } else if (!/^[0-9]{16}$/.test(formData.nik.trim())) {
+      errors.nik = 'NIK harus 16 digit angka';
+    }
     
     if (!formData.address.trim()) {
       errors.address = 'Alamat wajib diisi';
@@ -274,18 +401,21 @@ const AnggotaMUPage = () => {
     setIsSubmitting(true);
     
     try {
+      const finalJob = formData.job === 'Lainnya' ? formData.job_other : formData.job;
+      
       const payload = {
+        id: formData.id.trim(),
         name: formData.name.trim(),
-        password: formData.password,
-        birth_date: formData.birth_date,
+        password: 'password123', // Default password
+        birth_date: formData.birth_date + 'T00:00:00Z',
         telp: formData.telp.trim(),
         gender: formData.gender,
-        job: formData.job.trim() || null,
-        role_id: parseInt(formData.role_id),
-        sub_village_id: parseInt(formData.sub_village_id),
+        job: finalJob || null,
+        role_id: 3, // Default role: member
+        village_id: formData.village_id,
         nik: formData.nik.trim(),
         address: formData.address.trim(),
-        is_mobile: formData.is_mobile
+        is_mobile: false // Default: tidak mobile
       };
       
       console.log('Submitting payload:', payload);
@@ -297,11 +427,11 @@ const AnggotaMUPage = () => {
       setShowAddModal(false);
       resetForm();
       await fetchMembers();
-      alert('Anggota berhasil ditambahkan!');
+      alert('Anggota berhasil ditambahkan! Password default: password123');
       
     } catch (error) {
       console.error('Error creating user:', error);
-      alert('Gagal menambahkan anggota: ' + error.message);
+      alert('Gagal menambahkan anggota: ' + (error.message || 'Terjadi kesalahan'));
     } finally {
       setIsSubmitting(false);
     }
@@ -309,21 +439,22 @@ const AnggotaMUPage = () => {
 
   const resetForm = () => {
     setFormData({
+      id: '',
       name: '',
-      password: '',
       birth_date: '',
       telp: '',
       gender: 'male',
       job: '',
-      role_id: 3,
-      sub_village_id: '',
+      job_other: '',
+      village_id: '',
       nik: '',
-      address: '',
-      is_mobile: false
+      address: ''
     });
     setFormErrors({});
-    setSelectedVillageForAdd('');
-    setFilteredSubVillagesForAdd([]);
+    setSelectedCityForAdd('');
+    setSelectedDistrictForAdd('');
+    setFilteredDistrictsForAdd([]);
+    setFilteredVillagesForAdd([]);
   };
 
   const handleCloseAddModal = () => {
@@ -383,7 +514,7 @@ const AnggotaMUPage = () => {
             </div>
           </div>
           <div className="stat-card green">
-            <div className="stat-icon"></div>
+            <div className="stat-icon">👨</div>
             <div className="stat-content">
               <div className="stat-number">
                 {members.filter(m => m.gender === 'male').length}
@@ -392,7 +523,7 @@ const AnggotaMUPage = () => {
             </div>
           </div>
           <div className="stat-card purple">
-            <div className="stat-icon"></div>
+            <div className="stat-icon">👩</div>
             <div className="stat-content">
               <div className="stat-number">
                 {members.filter(m => m.gender === 'female').length}
@@ -427,25 +558,25 @@ const AnggotaMUPage = () => {
               </div>
               <div className="filter-section">
                 <select
-                  value={selectedVillage}
-                  onChange={(e) => setSelectedVillage(e.target.value)}
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
                   className="filter-select"
                 >
                   <option value="semua">Semua Kabupaten/Kota</option>
-                  {villages.map(village => (
-                    <option key={village.id} value={village.id}>{village.name}</option>
+                  {cities.map(city => (
+                    <option key={city.id} value={city.id}>{city.name}</option>
                   ))}
                 </select>
                 <select
-                  value={selectedSubVillage}
-                  onChange={(e) => setSelectedSubVillage(e.target.value)}
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
                   className="filter-select"
-                  disabled={selectedVillage === 'semua'}
+                  disabled={selectedCity === 'semua'}
                 >
                   <option value="semua">Semua Kecamatan</option>
-                  {filteredSubVillages.map(subVillage => (
-                    <option key={subVillage.id} value={subVillage.id}>
-                      {subVillage.name}
+                  {filteredDistricts.map(district => (
+                    <option key={district.id} value={district.id}>
+                      {district.name}
                     </option>
                   ))}
                 </select>
@@ -510,10 +641,10 @@ const AnggotaMUPage = () => {
                       <td>
                         <div style={{ fontSize: '0.85rem' }}>
                           <div style={{ fontWeight: '600', marginBottom: '2px' }}>
-                            {member.sub_village?.name || '-'}
+                            {member.village_name || '-'}
                           </div>
                           <div style={{ color: '#6b7280', fontSize: '0.8rem' }}>
-                            {member.sub_village?.village?.name || '-'}
+                            {member.district_name || '-'}, {member.city_name || '-'}
                           </div>
                         </div>
                       </td>
@@ -575,67 +706,14 @@ const AnggotaMUPage = () => {
           )}
         </div>
 
-        {/* Upload Modal */}
-        {showUploadModal && (
-          <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-              <div className="modal-header">
-                <h2>Upload Data Sensus</h2>
-                <button 
-                  className="modal-close"
-                  onClick={() => setShowUploadModal(false)}
-                >
-                  ×
-                </button>
-              </div>
-              <div className="modal-body">
-                <div className="upload-area">
-                  <Upload size={48} className="upload-icon" />
-                  <p>Drag & drop file Excel/CSV atau klik untuk browse</p>
-                  <input 
-                    type="file" 
-                    accept=".xlsx,.csv" 
-                    className="file-input"
-                    style={{ display: 'none' }}
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload" className="btn btn-primary">
-                    Pilih File
-                  </label>
-                </div>
-                <div className="upload-instructions">
-                  <h4>Petunjuk Upload:</h4>
-                  <ul>
-                    <li>File harus berformat .xlsx atau .csv</li>
-                    <li>Kolom wajib: <strong>name, password, birth_date, telp, gender, sub_village_id, nik, address</strong></li>
-                    <li>Format tanggal: YYYY-MM-DD (contoh: 1990-05-15)</li>
-                    <li>Gender: male atau female</li>
-                    <li>Maksimal 1000 data per upload</li>
-                  </ul>
-                  <div style={{ marginTop: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '6px' }}>
-                    <strong>Contoh format CSV:</strong>
-                    <pre style={{ 
-                      fontSize: '0.8em', 
-                      overflow: 'auto', 
-                      padding: '8px',
-                      background: 'white',
-                      borderRadius: '4px',
-                      marginTop: '8px'
-                    }}>
-{`name,password,birth_date,telp,gender,job,role_id,sub_village_id,nik,address
-Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test`}
-                    </pre>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Add Member Modal */}
         {showAddModal && (
           <div className="modal-overlay" onClick={handleCloseAddModal}>
-            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '700px' }}>
+            <div 
+              className="modal-content" 
+              onClick={e => e.stopPropagation()} 
+              style={{ maxWidth: '700px', maxHeight: '90vh', overflowY: 'auto' }}
+            >
               <div className="modal-header">
                 <h2>Tambah Anggota Baru</h2>
                 <button 
@@ -649,6 +727,35 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
                 <form onSubmit={handleSubmitAdd}>
                   <div style={{ display: 'grid', gap: '16px' }}>
                     
+                    {/* ID/Username */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        ID/Username <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="id"
+                        value={formData.id}
+                        onChange={handleInputChange}
+                        placeholder="Contoh: user123"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.id ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      {formErrors.id && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.id}
+                        </span>
+                      )}
+                      <small style={{ color: '#6b7280', fontSize: '12px' }}>
+                        Password default: password123
+                      </small>
+                    </div>
+
                     {/* Nama */}
                     <div>
                       <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
@@ -671,32 +778,6 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
                       {formErrors.name && (
                         <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
                           {formErrors.name}
-                        </span>
-                      )}
-                    </div>
-
-                    {/* Password */}
-                    <div>
-                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                        Password <span style={{ color: '#ef4444' }}>*</span>
-                      </label>
-                      <input
-                        type="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        placeholder="Minimal 6 karakter"
-                        style={{
-                          width: '100%',
-                          padding: '10px 12px',
-                          border: formErrors.password ? '1px solid #ef4444' : '1px solid #d1d5db',
-                          borderRadius: '6px',
-                          fontSize: '14px'
-                        }}
-                      />
-                      {formErrors.password && (
-                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                          {formErrors.password}
                         </span>
                       )}
                     </div>
@@ -749,76 +830,90 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
                       </div>
                     </div>
 
-                    {/* Row: Telepon dan Role */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                          No. Telepon <span style={{ color: '#ef4444' }}>*</span>
-                        </label>
-                        <input
-                          type="text"
-                          name="telp"
-                          value={formData.telp}
-                          onChange={handleInputChange}
-                          placeholder="081234567890"
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            border: formErrors.telp ? '1px solid #ef4444' : '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px'
-                          }}
-                        />
-                        {formErrors.telp && (
-                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                            {formErrors.telp}
-                          </span>
-                        )}
-                      </div>
-                      
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                          Role
-                        </label>
-                        <select
-                          name="role_id"
-                          value={formData.role_id}
-                          onChange={handleInputChange}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            border: '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px'
-                          }}
-                        >
-                          <option value="1">Admin</option>
-                          <option value="2">Operator</option>
-                          <option value="3">Member</option>
-                        </select>
-                      </div>
+                    {/* No. Telepon */}
+                    <div>
+                      <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                        No. Telepon <span style={{ color: '#ef4444' }}>*</span>
+                      </label>
+                      <input
+                        type="text"
+                        name="telp"
+                        value={formData.telp}
+                        onChange={handleInputChange}
+                        placeholder="081234567890"
+                        style={{
+                          width: '100%',
+                          padding: '10px 12px',
+                          border: formErrors.telp ? '1px solid #ef4444' : '1px solid #d1d5db',
+                          borderRadius: '6px',
+                          fontSize: '14px'
+                        }}
+                      />
+                      {formErrors.telp && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.telp}
+                        </span>
+                      )}
                     </div>
 
                     {/* Pekerjaan */}
                     <div>
                       <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                        Pekerjaan
+                        Pekerjaan <span style={{ color: '#ef4444' }}>*</span>
                       </label>
-                      <input
-                        type="text"
+                      <select
                         name="job"
                         value={formData.job}
-                        onChange={handleInputChange}
-                        placeholder="Contoh: Guru, Dokter, Wiraswasta"
+                        onChange={handleJobChange}
                         style={{
                           width: '100%',
                           padding: '10px 12px',
-                          border: '1px solid #d1d5db',
+                          border: formErrors.job ? '1px solid #ef4444' : '1px solid #d1d5db',
                           borderRadius: '6px',
                           fontSize: '14px'
                         }}
-                      />
+                      >
+                        <option value="">Pilih Pekerjaan</option>
+                        {jobOptions.map(option => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {formErrors.job && (
+                        <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                          {formErrors.job}
+                        </span>
+                      )}
                     </div>
+
+                    {/* Input Pekerjaan Lainnya (jika dipilih) */}
+                    {formData.job === 'Lainnya' && (
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                          Sebutkan Profesi Lainnya <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <input
+                          type="text"
+                          name="job_other"
+                          value={formData.job_other}
+                          onChange={handleInputChange}
+                          placeholder="Contoh: Freelancer, Designer, dll"
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.job_other ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px'
+                          }}
+                        />
+                        {formErrors.job_other && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.job_other}
+                          </span>
+                        )}
+                      </div>
+                    )}
 
                     {/* NIK */}
                     <div>
@@ -847,65 +942,111 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
                       )}
                     </div>
 
-                    {/* Row: Kabupaten dan Kecamatan */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
+                    {/* Wilayah Section */}
+                    <div style={{ 
+                      padding: '12px', 
+                      background: '#f9fafb', 
+                      borderRadius: '6px',
+                      border: '1px solid #e5e7eb'
+                    }}>
+                      <h4 style={{ margin: '0 0 12px 0', fontSize: '14px', fontWeight: '600' }}>
+                        <MapPin size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                        Wilayah Domisili
+                      </h4>
+                      
+                      {/* Kabupaten/Kota */}
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
                           Kabupaten/Kota <span style={{ color: '#ef4444' }}>*</span>
                         </label>
                         <select
-                          value={selectedVillageForAdd}
-                          onChange={handleVillageChangeForAdd}
+                          value={selectedCityForAdd}
+                          onChange={handleCityChangeForAdd}
                           style={{
                             width: '100%',
                             padding: '10px 12px',
-                            border: formErrors.village ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            border: formErrors.city ? '1px solid #ef4444' : '1px solid #d1d5db',
                             borderRadius: '6px',
                             fontSize: '14px'
                           }}
                         >
                           <option value="">Pilih Kabupaten/Kota</option>
-                          {villages.map(village => (
+                          {cities.map(city => (
+                            <option key={city.id} value={city.id}>
+                              {city.name}
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.city && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.city}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Kecamatan */}
+                      <div style={{ marginBottom: '12px' }}>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
+                          Kecamatan <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          value={selectedDistrictForAdd}
+                          onChange={handleDistrictChangeForAdd}
+                          disabled={!selectedCityForAdd}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.district ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            opacity: !selectedCityForAdd ? 0.6 : 1,
+                            cursor: !selectedCityForAdd ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <option value="">Pilih Kecamatan</option>
+                          {filteredDistrictsForAdd.map(district => (
+                            <option key={district.id} value={district.id}>
+                              {district.name}
+                            </option>
+                          ))}
+                        </select>
+                        {formErrors.district && (
+                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
+                            {formErrors.district}
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Kelurahan/Desa */}
+                      <div>
+                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500', fontSize: '14px' }}>
+                          Kelurahan/Desa <span style={{ color: '#ef4444' }}>*</span>
+                        </label>
+                        <select
+                          name="village_id"
+                          value={formData.village_id}
+                          onChange={handleInputChange}
+                          disabled={!selectedDistrictForAdd}
+                          style={{
+                            width: '100%',
+                            padding: '10px 12px',
+                            border: formErrors.village_id ? '1px solid #ef4444' : '1px solid #d1d5db',
+                            borderRadius: '6px',
+                            fontSize: '14px',
+                            opacity: !selectedDistrictForAdd ? 0.6 : 1,
+                            cursor: !selectedDistrictForAdd ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <option value="">Pilih Kelurahan/Desa</option>
+                          {filteredVillagesForAdd.map(village => (
                             <option key={village.id} value={village.id}>
                               {village.name}
                             </option>
                           ))}
                         </select>
-                        {formErrors.village && (
+                        {formErrors.village_id && (
                           <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                            {formErrors.village}
-                          </span>
-                        )}
-                      </div>
-
-                      <div>
-                        <label style={{ display: 'block', marginBottom: '6px', fontWeight: '500' }}>
-                          Kecamatan <span style={{ color: '#ef4444' }}>*</span>
-                        </label>
-                        <select
-                          name="sub_village_id"
-                          value={formData.sub_village_id}
-                          onChange={handleInputChange}
-                          disabled={!selectedVillageForAdd}
-                          style={{
-                            width: '100%',
-                            padding: '10px 12px',
-                            border: formErrors.sub_village_id ? '1px solid #ef4444' : '1px solid #d1d5db',
-                            borderRadius: '6px',
-                            fontSize: '14px',
-                            opacity: !selectedVillageForAdd ? 0.6 : 1
-                          }}
-                        >
-                          <option value="">Pilih Kecamatan</option>
-                          {filteredSubVillagesForAdd.map(subVillage => (
-                            <option key={subVillage.id} value={subVillage.id}>
-                              {subVillage.name}
-                            </option>
-                          ))}
-                        </select>
-                        {formErrors.sub_village_id && (
-                          <span style={{ color: '#ef4444', fontSize: '12px', marginTop: '4px', display: 'block' }}>
-                            {formErrors.sub_village_id}
+                            {formErrors.village_id}
                           </span>
                         )}
                       </div>
@@ -920,7 +1061,7 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
                         name="address"
                         value={formData.address}
                         onChange={handleInputChange}
-                        placeholder="Jl. Merdeka No. 45, Surabaya"
+                        placeholder="Jl. Merdeka No. 45, RT 01/RW 02"
                         rows="3"
                         style={{
                           width: '100%',
@@ -939,23 +1080,21 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
                       )}
                     </div>
 
-                    {/* Akses Mobile */}
-                    <div>
-                      <label style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '8px',
-                        cursor: 'pointer'
-                      }}>
-                        <input
-                          type="checkbox"
-                          name="is_mobile"
-                          checked={formData.is_mobile}
-                          onChange={handleInputChange}
-                          style={{ cursor: 'pointer' }}
-                        />
-                        <span>Berikan akses Mobile App</span>
-                      </label>
+                    {/* Info Default Values */}
+                    <div style={{
+                      padding: '12px',
+                      background: '#eff6ff',
+                      border: '1px solid #bfdbfe',
+                      borderRadius: '6px',
+                      fontSize: '13px',
+                      color: '#1e40af'
+                    }}>
+                      <strong>ℹ️ Informasi:</strong>
+                      <ul style={{ margin: '8px 0 0 0', paddingLeft: '20px' }}>
+                        <li>Password default: <code>password123</code></li>
+                        <li>Role: Member (3)</li>
+                        <li>Akses Mobile App: Tidak aktif</li>
+                      </ul>
                     </div>
 
                   </div>
@@ -991,12 +1130,71 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
           </div>
         )}
 
+        {/* Upload Modal */}
+        {showUploadModal && (
+          <div className="modal-overlay" onClick={() => setShowUploadModal(false)}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+              <div className="modal-header">
+                <h2>Upload Data Sensus</h2>
+                <button 
+                  className="modal-close"
+                  onClick={() => setShowUploadModal(false)}
+                >
+                  ×
+                </button>
+              </div>
+              <div className="modal-body">
+                <div className="upload-area">
+                  <Upload size={48} className="upload-icon" />
+                  <p>Drag & drop file Excel/CSV atau klik untuk browse</p>
+                  <input 
+                    type="file" 
+                    accept=".xlsx,.csv" 
+                    className="file-input"
+                    style={{ display: 'none' }}
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload" className="btn btn-primary">
+                    Pilih File
+                  </label>
+                </div>
+                <div className="upload-instructions">
+                  <h4>Petunjuk Upload:</h4>
+                  <ul>
+                    <li>File harus berformat .xlsx atau .csv</li>
+                    <li>Kolom wajib: <strong>id, name, birth_date, telp, gender, village_id, nik, address</strong></li>
+                    <li>Format tanggal: YYYY-MM-DD (contoh: 1990-05-15)</li>
+                    <li>Gender: male atau female</li>
+                    <li>village_id harus sesuai dengan data wilayah (contoh: 3576011001)</li>
+                    <li>Maksimal 1000 data per upload</li>
+                  </ul>
+                  <div style={{ marginTop: '16px', padding: '12px', background: '#f3f4f6', borderRadius: '6px' }}>
+                    <strong>Contoh format CSV:</strong>
+                    <pre style={{ 
+                      fontSize: '0.8em', 
+                      overflow: 'auto', 
+                      padding: '8px',
+                      background: 'white',
+                      borderRadius: '4px',
+                      marginTop: '8px'
+                    }}>
+{`id,name,birth_date,telp,gender,job,village_id,nik,address
+user001,Budi Santoso,1990-05-15,081234567890,male,Guru,3576011001,3576011234567890,Jl. Merdeka No.1`}
+                    </pre>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         <UserEditModal
           isOpen={showEditModal}
           onClose={handleCloseEditModal}
           user={editingUser}
+          cities={cities}
+          districts={districts}
           villages={villages}
-          subVillages={subVillages}
           onSuccess={handleUpdateUser}
         />
         <UserDetailModal
@@ -1010,4 +1208,4 @@ Budi,password123,1990-05-15,081234567890,male,Guru,3,1,3578011234567890,Jl. Test
   );
 };
 
-export default AnggotaMUPage;
+export default AnggotaMUPage

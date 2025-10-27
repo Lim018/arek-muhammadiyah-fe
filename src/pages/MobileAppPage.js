@@ -9,8 +9,14 @@ const MobileAppPage = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [selectedVillage, setSelectedVillage] = useState('semua');
-  const [villages, setVillages] = useState([]);
+  
+  // State untuk filter wilayah (TIGA TINGKAT)
+  const [selectedCity, setSelectedCity] = useState('semua');
+  const [selectedDistrict, setSelectedDistrict] = useState('semua');
+  const [cities, setCities] = useState([]);
+  const [districts, setDistricts] = useState([]);
+  const [filteredDistricts, setFilteredDistricts] = useState([]); // Districts yang ditampilkan di dropdown
+  
   const [error, setError] = useState(null);
   
   // State untuk modal
@@ -19,19 +25,55 @@ const MobileAppPage = () => {
   const [loadingDetail, setLoadingDetail] = useState(false);
 
   useEffect(() => {
-    fetchVillages();
+    fetchWilayahData();
     fetchMobileUsers();
   }, []);
+  
+  // Efek untuk memfilter districts berdasarkan city yang dipilih
+  useEffect(() => {
+    filterDistrictsByCity(selectedCity);
+  }, [selectedCity, districts]);
 
-  const fetchVillages = async () => {
+  // Fetch wilayah data dari backend (disalin dari AnggotaMUPage.js)
+  const fetchWilayahData = async () => {
     try {
-      const response = await api.getVillages();
-      const villageData = response.data || response;
-      setVillages(Array.isArray(villageData) ? villageData : []);
+      const response = await api.getCities();
+      const citiesData = response.data || response;
+      
+      if (Array.isArray(citiesData)) {
+        setCities(citiesData);
+        
+        const allDistricts = [];
+        // Kita tidak butuh Villages di sini untuk filter Mobile App, tapi kita ambil districts
+        
+        citiesData.forEach(city => {
+          if (city.districts && Array.isArray(city.districts)) {
+            city.districts.forEach(district => {
+              allDistricts.push({
+                ...district,
+                city_id: city.id,
+                city_name: city.name
+              });
+            });
+          }
+        });
+        
+        setDistricts(allDistricts);
+      }
     } catch (error) {
-      console.error('Error fetching villages:', error);
-      setError('Gagal memuat data kelurahan');
+      console.error('Error fetching wilayah data:', error);
+      setError('Gagal memuat data wilayah');
     }
+  };
+  
+  const filterDistrictsByCity = (cityId) => {
+    if (cityId === 'semua') {
+      setFilteredDistricts([]);
+      setSelectedDistrict('semua');
+      return;
+    }
+    const filtered = districts.filter(d => d.city_id === cityId);
+    setFilteredDistricts(filtered);
   };
 
   const fetchMobileUsers = async () => {
@@ -39,22 +81,25 @@ const MobileAppPage = () => {
       setLoading(true);
       setError(null);
       
+      // Mengambil data pengguna mobile
       const response = await api.getMobileUsers();
       
-      if (response.success && response.data) {
-        setUsers(response.data);
+      let usersData = [];
+      if (response.data && Array.isArray(response.data)) {
+        usersData = response.data;
       } else if (Array.isArray(response)) {
-        setUsers(response);
+        usersData = response;
       } else {
-        console.warn('Unexpected response format:', response);
-        setUsers([]);
+        throw new Error('Format response tidak sesuai');
       }
+
+      setUsers(usersData);
       
-      setLoading(false);
     } catch (error) {
       console.error('Error fetching mobile users:', error);
       setError(error.message || 'Gagal memuat data pengguna mobile');
       setUsers([]);
+    } finally {
       setLoading(false);
     }
   };
@@ -67,11 +112,9 @@ const MobileAppPage = () => {
     
     try {
       const response = await api.getUser(userId);
-      if (response.success && response.data) {
-        setSelectedUser(response.data);
-      } else if (response.id) { // Fallback untuk format respons yang berbeda
-        setSelectedUser(response);
-      }
+      // Menggunakan logika yang sudah ada di AnggotaMUPage.js
+      const userData = response.data || response;
+      setSelectedUser(userData);
     } catch (error) {
       console.error('Error fetching user detail:', error);
       alert('Gagal memuat detail pengguna');
@@ -87,18 +130,28 @@ const MobileAppPage = () => {
     setSelectedUser(null);
   };
 
-  // Filter pengguna berdasarkan pencarian dan kelurahan
+  // Filter pengguna berdasarkan pencarian dan wilayah (DISESUAIKAN)
   const filteredUsers = users.filter(user => {
     const searchTermLower = searchTerm.toLowerCase();
-    const matchesSearch = user.name.toLowerCase().includes(searchTermLower) ||
+    
+    const matchesSearch = user.name?.toLowerCase().includes(searchTermLower) ||
                          user.telp?.includes(searchTerm) ||
                          user.nik?.includes(searchTerm) ||
-                         user.village?.name.toLowerCase().includes(searchTermLower);
+                         user.village_name?.toLowerCase().includes(searchTermLower) ||
+                         user.city_name?.toLowerCase().includes(searchTermLower);
     
-    const matchesVillage = selectedVillage === 'semua' || user.village_id === parseInt(selectedVillage);
+    // Asumsi: data user mobile juga memiliki city_id dan district_id
+    const matchesCity = selectedCity === 'semua' || 
+                       user.city_id === selectedCity;
     
-    return matchesSearch && matchesVillage;
+    const matchesDistrict = selectedDistrict === 'semua' || 
+                           user.district_id === selectedDistrict;
+    
+    return matchesSearch && matchesCity && matchesDistrict;
   });
+
+  // Hitung total kelurahan unik yang memiliki pengguna mobile
+  const uniqueVillagesCount = new Set(users.map(u => u.village_id)).size;
 
   return (
     <Layout>
@@ -140,8 +193,8 @@ const MobileAppPage = () => {
           <div className="stat-card purple">
             <div className="stat-icon">🏘️</div>
             <div className="stat-content">
-              <div className="stat-number">{villages.length}</div>
-              <div className="stat-description">Kelurahan</div>
+              <div className="stat-number">{uniqueVillagesCount}</div>
+              <div className="stat-description">Kelurahan Terdaftar</div>
             </div>
           </div>
         </div>
@@ -154,24 +207,40 @@ const MobileAppPage = () => {
                 <Search size={20} className="search-icon" />
                 <input
                   type="text"
-                  placeholder="Cari berdasarkan nama, NIK, telepon, atau kelurahan..."
+                  placeholder="Cari berdasarkan nama, NIK, telepon, atau wilayah..."
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className="search-input"
                 />
               </div>
+              
+              {/* Filter Wilayah (DISESUAIKAN) */}
               <div className="filter-section">
                 <select
-                  value={selectedVillage}
-                  onChange={(e) => setSelectedVillage(e.target.value)}
+                  value={selectedCity}
+                  onChange={(e) => setSelectedCity(e.target.value)}
                   className="filter-select"
                 >
-                  <option value="semua">Semua Kelurahan</option>
-                  {villages.map(village => (
-                    <option key={village.id} value={village.id}>{village.name}</option>
+                  <option value="semua">Semua Kabupaten/Kota</option>
+                  {cities.map(city => (
+                    <option key={city.id} value={city.id}>{city.name}</option>
+                  ))}
+                </select>
+                <select
+                  value={selectedDistrict}
+                  onChange={(e) => setSelectedDistrict(e.target.value)}
+                  className="filter-select"
+                  disabled={selectedCity === 'semua'}
+                >
+                  <option value="semua">Semua Kecamatan</option>
+                  {filteredDistricts.map(district => (
+                    <option key={district.id} value={district.id}>
+                      {district.name}
+                    </option>
                   ))}
                 </select>
               </div>
+              
             </div>
           </div>
 
@@ -181,7 +250,7 @@ const MobileAppPage = () => {
                 <tr>
                   <th>Nama</th>
                   <th>No. Telepon</th>
-                  <th>Kelurahan</th>
+                  <th>Wilayah Domisili</th>
                   <th>NIK</th>
                   <th>Alamat</th>
                   <th>Aksi</th>
@@ -195,7 +264,7 @@ const MobileAppPage = () => {
                 ) : filteredUsers.length === 0 ? (
                   <tr>
                     <td colSpan="6" className="empty-cell">
-                      {error ? 'Terjadi kesalahan saat memuat data' : 'Tidak ada data yang ditemukan'}
+                      {error ? 'Terjadi kesalahan saat memuat data' : 'Tidak ada pengguna mobile yang ditemukan'}
                     </td>
                   </tr>
                 ) : (
@@ -211,9 +280,13 @@ const MobileAppPage = () => {
                         </div>
                       </td>
                       <td>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <MapPin size={14} style={{ color: '#6b7280' }} />
-                          {user.village?.name || '-'}
+                        <div style={{ fontSize: '0.85rem' }}>
+                          <div style={{ fontWeight: '600', marginBottom: '2px' }}>
+                            {user.village_name || '-'}
+                          </div>
+                          <div style={{ color: '#6b7280', fontSize: '0.8rem' }}>
+                            {user.district_name || '-'}, {user.city_name || '-'}
+                          </div>
                         </div>
                       </td>
                       <td>
