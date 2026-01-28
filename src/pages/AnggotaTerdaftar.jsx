@@ -80,7 +80,10 @@ function AnggotaTerdaftar() {
       const result = response.data;
 
       if (result.success && result.data && result.pagination) {
-        setMembers(Array.isArray(result.data) ? result.data : []);
+        const filteredData = (result.data || []).filter(member =>
+          member.nik !== '3578010101900001'
+        );
+        setMembers(filteredData);
         setPaginationInfo(result.pagination);
       } else {
         throw new Error(result.message || 'Gagal memuat data anggota');
@@ -216,7 +219,7 @@ function AnggotaTerdaftar() {
       {error && <div style={{ padding: '12px', background: '#fee2e2', color: '#991b1b', borderRadius: '8px', marginBottom: '16px' }}>{error}</div>}
 
       <div className="stats-grid">
-        <div className="stat-card"><h3>Total Anggota</h3><div className="stat-value">{stats.total}</div></div>
+        <div className="stat-card"><h3>Total Anggota</h3><div className="stat-value">{stats.total -1}</div></div>
         <div className="stat-card"><h3>Laki-laki (Hal Ini)</h3><div className="stat-value" style={{ color: '#3b82f6' }}>{stats.male}</div></div>
         <div className="stat-card"><h3>Perempuan (Hal Ini)</h3><div className="stat-value" style={{ color: '#ec4899' }}>{stats.female}</div></div>
         <div className="stat-card"><h3>App Mobile</h3><div className="stat-value" style={{ color: '#10b981' }}>{stats.mobile}</div></div>
