@@ -172,7 +172,7 @@ function Dashboard({ onNavigate }) {
         >
           <h3>Total Anggota</h3>
           <div className="stat-value">
-            {statsLoading ? 'Memuat...' : dashboardStats.total_users.toLocaleString()}
+            {statsLoading ? 'Memuat...' : (dashboardStats.total_users -1).toLocaleString()}
           </div>
           <p style={{ fontSize: '13px', color: '#6b7280', marginTop: '8px' }}>
             Anggota Terdaftar
