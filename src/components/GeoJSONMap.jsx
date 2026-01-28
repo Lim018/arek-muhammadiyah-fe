@@ -19,22 +19,22 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
     }
 
     const normalizedSearch = cityName.toUpperCase().trim();
-    
+
     // Cari di wilayahData berdasarkan name
     const found = wilayahData.find(city => {
       const normalizedCityName = city.name.toUpperCase().trim();
-      
+
       // Exact match
       if (normalizedCityName === normalizedSearch) {
         return true;
       }
-      
+
       // Partial match
-      if (normalizedCityName.includes(normalizedSearch) || 
-          normalizedSearch.includes(normalizedCityName)) {
+      if (normalizedCityName.includes(normalizedSearch) ||
+        normalizedSearch.includes(normalizedCityName)) {
         return true;
       }
-      
+
       // Handle "KABUPATEN" atau "KOTA" prefix
       const nameWithoutPrefix = normalizedCityName
         .replace('KABUPATEN ', '')
@@ -42,11 +42,11 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
       const searchWithoutPrefix = normalizedSearch
         .replace('KABUPATEN ', '')
         .replace('KOTA ', '');
-        
+
       if (nameWithoutPrefix === searchWithoutPrefix) {
         return true;
       }
-      
+
       return false;
     });
 
@@ -69,10 +69,10 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
   const style = (feature) => {
     const cityName = feature.properties.WADMKK || feature.properties.NAME || feature.properties.name;
     const cityId = getCityIdFromName(cityName);
-    
+
     const cityData = cityId && cityStatsData ? cityStatsData[cityId] : null;
     const memberCount = cityData ? cityData.total_users : 0;
-    
+
     return {
       fillColor: getColorByMemberCount(memberCount),
       weight: 2.5,
@@ -103,7 +103,7 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
           fillOpacity: 0.95
         });
         layer.bringToFront();
-        
+
         if (onCityHover) {
           onCityHover(cityName, cityId, cityData, e);
         }
@@ -115,7 +115,7 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
       click: (e) => {
         const map = e.target._map;
         map.fitBounds(e.target.getBounds());
-        
+
         if (onCityClick) {
           onCityClick(cityName, cityId, cityData);
         }
@@ -127,21 +127,47 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
   const filterJawaTimur = (geoJsonData) => {
     if (!geoJsonData || !geoJsonData.features) return null;
 
+    // Daftar lengkap kabupaten/kota di Jawa Timur
     const jawaTimurCities = [
+      // Kabupaten dengan prefix
+      'KABUPATEN PACITAN', 'KABUPATEN PONOROGO', 'KABUPATEN TRENGGALEK',
+      'KABUPATEN TULUNGAGUNG', 'KABUPATEN BLITAR', 'KABUPATEN KEDIRI',
+      'KABUPATEN MALANG', 'KABUPATEN LUMAJANG', 'KABUPATEN JEMBER',
+      'KABUPATEN BANYUWANGI', 'KABUPATEN BONDOWOSO', 'KABUPATEN SITUBONDO',
+      'KABUPATEN PROBOLINGGO', 'KABUPATEN PASURUAN', 'KABUPATEN SIDOARJO',
+      'KABUPATEN MOJOKERTO', 'KABUPATEN JOMBANG', 'KABUPATEN NGANJUK',
+      'KABUPATEN MADIUN', 'KABUPATEN MAGETAN', 'KABUPATEN NGAWI',
+      'KABUPATEN BOJONEGORO', 'KABUPATEN TUBAN', 'KABUPATEN LAMONGAN',
+      'KABUPATEN GRESIK', 'KABUPATEN BANGKALAN', 'KABUPATEN SAMPANG',
+      'KABUPATEN PAMEKASAN', 'KABUPATEN SUMENEP',
+      // Kota
+      'KOTA KEDIRI', 'KOTA BLITAR', 'KOTA MALANG', 'KOTA PROBOLINGGO',
+      'KOTA PASURUAN', 'KOTA MOJOKERTO', 'KOTA MADIUN', 'KOTA SURABAYA', 'KOTA BATU',
+      // Tanpa prefix (untuk fallback matching)
       'PACITAN', 'PONOROGO', 'TRENGGALEK', 'TULUNGAGUNG', 'BLITAR', 'KEDIRI',
       'MALANG', 'LUMAJANG', 'JEMBER', 'BANYUWANGI', 'BONDOWOSO', 'SITUBONDO',
       'PROBOLINGGO', 'PASURUAN', 'SIDOARJO', 'MOJOKERTO', 'JOMBANG', 'NGANJUK',
       'MADIUN', 'MAGETAN', 'NGAWI', 'BOJONEGORO', 'TUBAN', 'LAMONGAN', 'GRESIK',
-      'BANGKALAN', 'SAMPANG', 'PAMEKASAN', 'SUMENEP',
-      'KOTA KEDIRI', 'KOTA BLITAR', 'KOTA MALANG', 'KOTA PROBOLINGGO',
-      'KOTA PASURUAN', 'KOTA MOJOKERTO', 'KOTA MADIUN', 'KOTA SURABAYA', 'KOTA BATU'
+      'BANGKALAN', 'SAMPANG', 'PAMEKASAN', 'SUMENEP', 'SURABAYA', 'BATU'
     ];
 
     const filteredFeatures = geoJsonData.features.filter(feature => {
-      const cityName = (feature.properties.WADMKK || feature.properties.NAME || feature.properties.name || '').toUpperCase();
-      return jawaTimurCities.some(jatimCity => 
-        cityName.includes(jatimCity) || jatimCity.includes(cityName)
-      );
+      // Filter berdasarkan kode provinsi Jawa Timur (35)
+      const provinceCode = feature.properties.KDPPUM || feature.properties.KODE || feature.properties.KDPKAB || '';
+      if (provinceCode.toString().startsWith('35')) return true;
+
+      // Fallback: filter berdasarkan nama
+      const cityName = (feature.properties.WADMKK || feature.properties.NAME || feature.properties.name || '').toUpperCase().trim();
+
+      // Exact match first
+      if (jawaTimurCities.includes(cityName)) return true;
+
+      // Partial match
+      return jawaTimurCities.some(jatimCity => {
+        const normalizedJatim = jatimCity.replace('KABUPATEN ', '').replace('KOTA ', '');
+        const normalizedCity = cityName.replace('KABUPATEN ', '').replace('KOTA ', '');
+        return normalizedCity === normalizedJatim;
+      });
     });
 
     return {
@@ -172,7 +198,7 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
   const MapLegend = () => {
     const grades = [0, 10, 20, 50, 100, 200, 300, 500];
     const labels = [];
-    
+
     // Helper untuk style item legend
     const legendItemStyle = {
       display: 'flex',
@@ -210,23 +236,23 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
           const nextGrade = grades[index + 1];
           // Menggunakan +1 untuk range bawah karena logikanya 'members > grade'
           // Kecuali 0 yang berarti > 0
-          const from = grade === 0 ? 0 : grade + 1; 
+          const from = grade === 0 ? 0 : grade + 1;
           const to = nextGrade ? nextGrade : '+';
-          
+
           // Ambil warna berdasarkan nilai 'from'
           // Kita gunakan 'from' agar sesuai dengan logika if (members > X)
           // Contoh: untuk range 11-20, kita butuh warna untuk >10 yaitu #FED976
           let colorToCheck = from;
           // Koreksi khusus untuk logika > 0 agar mapping warna tepat
-          if (grade === 0) colorToCheck = 1; 
+          if (grade === 0) colorToCheck = 1;
 
           return (
             <div key={index} style={legendItemStyle}>
               <i style={colorBoxStyle(getColorByMemberCount(colorToCheck))}></i>
               <span>
-                {grade === 0 ? '> 0' : 
-                 grade === 500 ? '> 500' : 
-                 `${grade + 1} – ${nextGrade}`}
+                {grade === 0 ? '> 0' :
+                  grade === 500 ? '> 500' :
+                    `${grade + 1} – ${nextGrade}`}
               </span>
             </div>
           );
@@ -241,7 +267,7 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
 
   return (
     <div style={{ position: 'relative', width: '100%', height: '100%' }}>
-      <MapContainer 
+      <MapContainer
         center={[-7.5, 112.5]}
         zoom={8}
         style={{ height: '100%', width: '100%' }}
@@ -265,7 +291,7 @@ const GeoJSONMap = ({ geoJsonData, cityStatsData, onCityClick, onCityHover, wila
           />
         )}
       </MapContainer>
-      
+
       {/* Render Legend di sini */}
       <MapLegend />
     </div>
